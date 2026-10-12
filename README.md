@@ -2,7 +2,7 @@
 
 Aplikasi web untuk mengelola persediaan bahan baku, barang jadi, resep produksi, dan transaksi stok pada toko butik. Frontend dibuat dengan HTML, CSS, dan JavaScript, dengan Supabase sebagai database.
 
-🌐 **Demo website:** [Sistem Persediaan Toko Butik](https://fadilahnur13.github.io/sistem-persediaan-toko-butik-fadilah/)
+🌐 Demo website: https://fadilahnur13.github.io/sistem-persediaan-toko-butik-fadilah/
 
 ## Struktur repository
 
