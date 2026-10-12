@@ -25,6 +25,12 @@ jobs:
         uses: actions/checkout@v4
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
+      - name: Verify frontend files
+        run: |
+          test -f frontend/index.html
+          test -f frontend/css/style.css
+          test -f frontend/js/config.js
+          test -f frontend/js/SCRIPT.JS
       - name: Upload frontend
         uses: actions/upload-pages-artifact@v3
         with:
