@@ -1,6 +1,8 @@
 # Sistem Persediaan Toko Butik
 
-[Buka Aplikasi](./Frontend/html/index.html)
+[Lihat file project di GitHub](https://github.com/fadilahnur13/sistem-persediaan-toko-butik-fadilah)
+
+[Buka Aplikasi](https://fadilahnur13.github.io/sistem-persediaan-toko-butik-fadilah/)
 
 ## Schema Visualizer
 
@@ -52,7 +54,7 @@ erDiagram
 - `TRANSAKSI` mencatat perubahan stok. `MASUK` dan `BAHAN_KELUAR` merujuk ke bahan baku; `PRODUKSI` dan `KELUAR` merujuk ke barang jadi. Setiap transaksi hanya memiliki satu target sesuai jenisnya.
 - Notasi `||` berarti tepat satu, sedangkan `o{` berarti nol atau banyak. Dengan demikian, satu barang atau bahan dapat belum memiliki atau memiliki banyak resep/transaksi, sementara setiap baris resep merujuk tepat ke satu barang dan satu bahan.
 
-Penjelasan lengkap setiap tabel, kolom, constraint, perilaku trigger, dan kebijakan akses tersedia di [dokumentasi skema database](docs/skema-database.md).
+Penjelasan lengkap setiap tabel, kolom, constraint, perilaku trigger, dan kebijakan akses tersedia di [dokumentasi skema database](backend/docs/skema-database.md).
 
 Aplikasi web sederhana untuk mengelola persediaan bahan baku dan barang jadi butik. Frontend menggunakan HTML, CSS, dan JavaScript, sedangkan penyimpanan data serta pemrosesan transaksi menggunakan PostgreSQL melalui Supabase.
 
@@ -75,35 +77,39 @@ Aplikasi web sederhana untuk mengelola persediaan bahan baku dan barang jadi but
 
 ```text
 Sistem Persediaan Butik/
-├── Backend/
+├── .github/
+│   └── workflows/
+│       └── pages.yml
+├── backend/
 │   ├── database.sql
-│   └── supabase/
-│       └── config.js
-├── Database/
-│   └── database.sql
-├── docs/
-│   └── skema-database.md
-└── Frontend/
-    ├── css/
-    │   └── style.css
-    ├── html/
-    │   └── index.html
-    └── js/
-        └── SCRIPT.JS
+│   ├── database/
+│   │   └── database.sql
+│   └── docs/
+│       ├── laporan-skema-database-inventory.pdf
+│       └── skema-database.md
+├── frontend/
+│   ├── css/
+│   │   └── style.css
+│   ├── index.html
+│   └── js/
+│       ├── config.js
+│       └── SCRIPT.JS
+├── .gitignore
+└── README.md
 ```
 
 ## Persiapan Database
 
 1. Buat proyek di [Supabase](https://supabase.com/) atau gunakan proyek Supabase yang sudah tersedia.
 2. Buka **SQL Editor** pada dashboard Supabase.
-3. Jalankan isi `Backend/database.sql` untuk membuat tabel, constraint, indeks, trigger, kebijakan RLS, dan data contoh.
+3. Jalankan isi `backend/database.sql` untuk membuat tabel, constraint, indeks, trigger, kebijakan RLS, dan data contoh.
 4. Pastikan tabel `bahan_baku`, `barang_jadi`, `detail_produksi`, dan `transaksi` berhasil dibuat.
 
-`Database/database.sql` merupakan salinan skema yang sama. Gunakan salah satu berkas SQL tersebut, bukan keduanya secara berurutan.
+`backend/database/database.sql` merupakan salinan skema. Gunakan salah satu berkas SQL tersebut, bukan keduanya secara berurutan.
 
 ## Konfigurasi Supabase
 
-Frontend menggunakan konfigurasi dari `Backend/supabase/config.js`. Sesuaikan URL proyek dan publishable/anon key dengan nilai pada pengaturan API proyek Supabase:
+Frontend menggunakan konfigurasi dari `frontend/js/config.js`. Sesuaikan URL proyek dan publishable/anon key dengan nilai pada pengaturan API proyek Supabase:
 
 ```js
 const SUPABASE_URL = "https://<project-ref>.supabase.co";
@@ -117,11 +123,11 @@ Keduanya digunakan di browser, jadi jangan menaruh `service_role` key atau secre
 Karena frontend berupa berkas statis, tidak diperlukan proses build atau instalasi package.
 
 1. Buka folder proyek di VS Code.
-2. Jalankan `Frontend/html/index.html` dengan ekstensi **Live Server** atau server statis lokal lainnya.
+2. Jalankan `frontend/index.html` dengan ekstensi **Live Server** atau server statis lokal lainnya.
 3. Pastikan koneksi internet tersedia agar Supabase JavaScript Client v2 dapat dimuat dari jsDelivr CDN.
 4. Pastikan database sudah disiapkan dan konfigurasi Supabase sudah sesuai.
 
-Frontend memuat skrip dengan urutan: Supabase JS v2 dari CDN, `Backend/supabase/config.js`, kemudian `Frontend/js/SCRIPT.JS`.
+Frontend memuat skrip dengan urutan: Supabase JS v2 dari CDN, `frontend/js/config.js`, kemudian `frontend/js/SCRIPT.JS`.
 
 ## Alur Persediaan
 
@@ -134,7 +140,7 @@ Produksi ditolak apabila resep belum dibuat, ada bahan resep yang nonaktif, atau
 
 ## Dokumentasi Skema
 
-Penjelasan tabel, kolom, relasi ERD, aturan trigger, dan catatan keamanan database tersedia di [docs/skema-database.md](docs/skema-database.md).
+Penjelasan tabel, kolom, relasi ERD, aturan trigger, dan catatan keamanan database tersedia di [backend/docs/skema-database.md](backend/docs/skema-database.md).
 
 ## Catatan
 
