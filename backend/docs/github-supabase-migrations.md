@@ -7,17 +7,25 @@ di branch `main`. Deploy frontend ke GitHub Pages tetap ditangani oleh workflow
 
 ## Aktifkan GitHub Actions
 
-Tambahkan dua repository secrets melalui **GitHub → Settings → Secrets and
-variables → Actions → New repository secret**:
+Workflow menggunakan koneksi langsung ke database, jadi tidak perlu membuat
+Supabase Personal Access Token atau mengatur permission token. Tambahkan satu
+repository secret melalui **GitHub → Settings → Secrets and variables →
+Actions → New repository secret**:
 
 | Secret | Isi |
 |---|---|
-| `SUPABASE_ACCESS_TOKEN` | Personal access token Supabase dengan akses ke project butik. |
-| `SUPABASE_DB_PASSWORD` | Password database project Supabase butik. |
+| `SUPABASE_DB_URL` | Connection string PostgreSQL untuk database project butik. |
 
-Jangan simpan nilai rahasia di file repository, kode frontend, commit, atau
+Ambil connection string di **Supabase Dashboard → project butik → Connect →
+Connection string → URI**. Gunakan mode koneksi langsung bila tersedia; jika
+jaringan tidak mendukung IPv6, gunakan session pooler yang disediakan dashboard.
+Ganti placeholder password pada URI dengan password database project. Encode
+karakter khusus pada password sebagai URL encoding sebelum menggantinya.
+
+Di GitHub, isi **Name** dengan `SUPABASE_DB_URL` dan **Secret** dengan seluruh
+URI. Jangan menyimpan URI/password di repository, kode frontend, commit, atau
 pesan. Jika password database belum diketahui, atur/reset melalui pengaturan
-database Supabase sebelum menambahkan secret.
+database Supabase.
 
 ## Menambahkan migrasi
 
@@ -28,7 +36,7 @@ database Supabase sebelum menambahkan secret.
    Supabase; workflow hanya menerapkan SQL migrasi.
 3. Uji perubahan pada project pengembangan atau database salinan, lalu kirim
    melalui pull request. Setelah ditinjau dan digabung ke `main`, GitHub Actions
-   menjalankan `supabase db push`.
+   menjalankan `supabase db push --db-url` menggunakan connection string rahasia.
 4. Periksa hasil pada tab **Actions**. Jika workflow gagal, perbaiki penyebabnya
    sebelum membuat migrasi susulan.
 
