@@ -21,7 +21,141 @@ let editBarangJadiId = null;
    SAAT HALAMAN DIBUKA
 ===================================================== */
 
+let activeUserId = null;
+let applicationInitialized = false;
+
 document.addEventListener("DOMContentLoaded", async function () {
+    const loginForm = document.getElementById("loginForm");
+    const logoutButton = document.getElementById("logoutButton");
+    const togglePassword = document.getElementById("togglePassword");
+
+    loginForm.addEventListener("submit", signIn);
+    logoutButton.addEventListener("click", signOut);
+    togglePassword.addEventListener("click", function () {
+        const passwordInput = document.getElementById("loginPassword");
+        const isVisible = passwordInput.type === "text";
+        passwordInput.type = isVisible ? "password" : "text";
+        togglePassword.setAttribute("aria-pressed", String(!isVisible));
+        togglePassword.setAttribute(
+            "aria-label",
+            isVisible ? "Tampilkan kata sandi" : "Sembunyikan kata sandi"
+        );
+    });
+
+    if (!supabaseClient) {
+        setAuthMessage("Koneksi Supabase belum tersedia. Periksa konfigurasi dan koneksi internet.");
+        document.getElementById("loginButton").disabled = true;
+        return;
+    }
+
+    supabaseClient.auth.onAuthStateChange(function (_event, session) {
+        setTimeout(function () {
+            applyAuthSession(session).catch(function (error) {
+                console.error("Gagal menyiapkan sesi:", error);
+                showNotification("Gagal menyiapkan sesi akun. Muat ulang halaman dan coba lagi.", "error");
+            });
+        }, 0);
+    });
+
+    try {
+        const { data: { session }, error } = await supabaseClient.auth.getSession();
+
+        if (error) {
+            console.error("Gagal memeriksa sesi:", error);
+            setAuthMessage("Sesi tidak dapat diperiksa. Muat ulang halaman dan coba lagi.");
+            return;
+        }
+
+        await applyAuthSession(session);
+    } catch (error) {
+        console.error("Gagal memeriksa sesi:", error);
+        setAuthMessage("Tidak dapat terhubung ke layanan login. Periksa koneksi internet lalu coba lagi.");
+    }
+});
+
+async function signIn(event) {
+    event.preventDefault();
+
+    const loginButton = document.getElementById("loginButton");
+    const email = document.getElementById("loginEmail").value.trim();
+    const password = document.getElementById("loginPassword").value;
+
+    loginButton.disabled = true;
+    setAuthMessage("");
+
+    try {
+        const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+
+        if (error) {
+            console.error("Gagal masuk:", error);
+            if (error.code === "email_not_confirmed") {
+                setAuthMessage("Akun belum dikonfirmasi. Konfirmasi akun di Supabase Authentication → Users.");
+            } else if (error.code === "invalid_credentials") {
+                setAuthMessage("Supabase menolak email atau kata sandi. Pastikan kata sandi yang dimasukkan adalah kata sandi akun Supabase.");
+            } else {
+                setAuthMessage("Login gagal: " + error.message);
+            }
+            return;
+        }
+
+        document.getElementById("loginPassword").value = "";
+    } catch (error) {
+        console.error("Gagal menghubungi layanan login:", error);
+        setAuthMessage("Tidak dapat terhubung ke layanan login. Periksa koneksi internet lalu coba lagi.");
+    } finally {
+        loginButton.disabled = false;
+    }
+}
+
+async function signOut() {
+    const logoutButton = document.getElementById("logoutButton");
+    logoutButton.disabled = true;
+
+    try {
+        const { error } = await supabaseClient.auth.signOut();
+
+        if (error) {
+            console.error("Gagal keluar:", error);
+            showNotification("Gagal keluar dari akun. Silakan coba lagi.", "error");
+        }
+    } catch (error) {
+        console.error("Gagal menghubungi layanan autentikasi:", error);
+        showNotification("Tidak dapat keluar karena layanan autentikasi tidak terjangkau.", "error");
+    } finally {
+        logoutButton.disabled = false;
+    }
+}
+
+async function applyAuthSession(session) {
+    const authScreen = document.getElementById("authScreen");
+    const appShell = document.getElementById("appShell");
+
+    if (!session) {
+        activeUserId = null;
+        applicationInitialized = false;
+        appShell.hidden = true;
+        authScreen.hidden = false;
+        return;
+    }
+
+    authScreen.hidden = true;
+    appShell.hidden = false;
+    document.getElementById("currentUserEmail").textContent = session.user.email || "";
+
+    if (activeUserId === session.user.id && applicationInitialized) {
+        return;
+    }
+
+    activeUserId = session.user.id;
+    applicationInitialized = true;
+    await initializeApplication();
+}
+
+function setAuthMessage(message) {
+    document.getElementById("authMessage").textContent = message;
+}
+
+async function initializeApplication() {
 
     console.log("Sistem Persediaan Toko Butik dimulai...");
 
@@ -67,9 +201,40 @@ document.addEventListener("DOMContentLoaded", async function () {
     const jenisTransaksiInput = document.getElementById("jenisTransaksi");
 
     if (jenisTransaksiInput) {
-        jenisTransaksiInput.addEventListener("change", syncTransactionCategory);
+        jenisTransaksiInput.addEventListener("change", function () {
+            document.getElementById("hargaPerolehanTransaksi").value = "";
+            document.getElementById("hargaJualTransaksi").value = "";
+            document.getElementById("metodePembayaranTransaksi").value = "";
+            syncTransactionCategory();
+        });
         syncTransactionCategory();
     }
+
+    ["hargaPerolehanTransaksi", "hargaJualTransaksi", "jumlahTransaksi"].forEach(function (id) {
+        document.getElementById(id).addEventListener("input", function () {
+            syncTransactionFields();
+            updateTransactionPreview();
+        });
+    });
+
+    document.getElementById("jenisBarangTransaksi").addEventListener("change", function () {
+        createTransactionItemSelect();
+        syncTransactionItemDetails();
+        updateTransactionPreview();
+    });
+
+    document.getElementById("metodePembayaranTransaksi").addEventListener("change", updateTransactionPreview);
+
+    const reportForm = document.getElementById("laporanForm");
+    reportForm.addEventListener("submit", function (event) {
+        event.preventDefault();
+        loadAccountingReport();
+    });
+
+    const today = getTodayDateString();
+    const monthStart = `${today.slice(0, 7)}-01`;
+    document.getElementById("laporanDari").value = monthStart;
+    document.getElementById("laporanSampai").value = today;
 
 
     // Event form bahan baku
@@ -101,7 +266,6 @@ document.addEventListener("DOMContentLoaded", async function () {
         );
     }
 
-
     // Event form transaksi
     const transaksiForm =
         document.getElementById(
@@ -126,7 +290,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     // Load seluruh data
     await loadAllData();
 
-});
+}
 
 
 /* =====================================================
@@ -171,7 +335,7 @@ async function loadAllData() {
    NAVIGASI HALAMAN
 ===================================================== */
 
-function showPage(pageId) {
+function showPage(pageId, navId) {
 
     // Semua halaman disembunyikan
     const pages =
@@ -211,25 +375,192 @@ function showPage(pageId) {
     });
 
 
-    // Cari tombol berdasarkan onclick
+    // Keep the active menu item distinct when a menu points to a section on another page.
     buttons.forEach(function (button) {
-
-        const onclick =
-            button.getAttribute("onclick");
-
-        if (
-            onclick &&
-            onclick.includes(
-                `'${pageId}'`
-            )
-        ) {
-
-            button.classList.add("active");
-
-        }
-
+        const activeNavId = navId || pageId;
+        button.classList.toggle(
+            "active",
+            button.dataset.page === pageId &&
+            button.dataset.navId === activeNavId
+        );
     });
 
+    const pageHeadings = {
+        dashboard: [
+            "Selamat Datang di Boutique",
+            "Kelola persediaan bahan baku dan koleksi butik dalam satu tempat."
+        ],
+        "bahan-baku": [
+            "Master Bahan Baku",
+            "Pantau bahan kain, benang, kancing, dan kebutuhan produksi lainnya."
+        ],
+        "barang-jadi": [
+            "Koleksi Barang Jadi",
+            "Kelola produk butik, stok siap jual, dan harga pokok setiap koleksi."
+        ],
+        transaksi: [
+            "Aktivitas Persediaan",
+            "Catat pembelian bahan, produksi, penjualan langsung, dan saldo persediaan."
+        ],
+        persediaan: [
+            "Ringkasan Persediaan",
+            "Lihat jumlah stok dan nilai persediaan bahan baku maupun barang jadi."
+        ],
+        laporan: [
+            "Laporan Akuntansi",
+            "Pantau penjualan tunai, HPP, laba kotor, dan jurnal umum butik."
+        ]
+    };
+    const heading = pageHeadings[pageId];
+    if (heading) {
+        document.getElementById("currentPageTitle").textContent = heading[0];
+        document.getElementById("currentPageDescription").textContent = heading[1];
+    }
+
+    if (pageId === "laporan") {
+        loadAccountingReport();
+    }
+
+}
+
+function openBahanHabisPakai() {
+    showPage("bahan-baku", "bahan-habis-pakai");
+
+    const section = document.getElementById("bahan-habis-pakai");
+    window.scrollTo({
+        top: section.getBoundingClientRect().top + window.scrollY - 20
+    });
+}
+
+function getTodayDateString() {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, "0");
+    const day = String(today.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+}
+
+async function loadAccountingReport() {
+    const from = document.getElementById("laporanDari").value;
+    const through = document.getElementById("laporanSampai").value;
+    const journalBody = document.getElementById("tabelJurnal");
+    const warning = document.getElementById("laporanPeringatan");
+
+    if (!from || !through || from > through) {
+        showNotification("Rentang tanggal laporan tidak valid.", "warning");
+        return;
+    }
+
+    try {
+        const [transactionResult, journalResult, bahanResult, barangResult] = await Promise.all([
+            supabaseClient.from("transaksi")
+                .select("jenis_transaksi, jumlah, nilai_bahan, nilai_persediaan, nilai_penjualan")
+                .gte("tanggal", from)
+                .lte("tanggal", through),
+            supabaseClient.from("jurnal_umum")
+                .select("id_transaksi, tanggal, akun, debit, kredit, keterangan")
+                .gte("tanggal", from)
+                .lte("tanggal", through)
+                .order("tanggal", { ascending: true })
+                .order("id_jurnal", { ascending: true }),
+            supabaseClient.from("bahan_baku")
+                .select("nama_bahan, stok, harga_pokok_rata_rata")
+                .eq("aktif", true),
+            supabaseClient.from("barang_jadi")
+                .select("nama_barang, stok, harga_pokok_rata_rata")
+                .eq("aktif", true)
+        ]);
+
+        [transactionResult, journalResult, bahanResult, barangResult].forEach(function (result) {
+            if (result.error) throw result.error;
+        });
+
+        const transactions = transactionResult.data || [];
+        const sales = transactions
+            .filter((item) => item.jenis_transaksi === "KELUAR")
+            .reduce((sum, item) => sum + Number(item.nilai_penjualan || 0), 0);
+        const hpp = transactions
+            .filter((item) => item.jenis_transaksi === "KELUAR")
+            .reduce((sum, item) => sum + Number(item.nilai_persediaan || 0), 0);
+        const purchases = transactions
+            .filter((item) => item.jenis_transaksi === "MASUK")
+            .reduce((sum, item) => sum + Number(item.nilai_persediaan || 0), 0);
+        const inventoryItems = [
+            ...(bahanResult.data || []).map((item) => ({
+                name: item.nama_bahan,
+                stock: Number(item.stok),
+                unitCost: Number(item.harga_pokok_rata_rata)
+            })),
+            ...(barangResult.data || []).map((item) => ({
+                name: item.nama_barang,
+                stock: Number(item.stok),
+                unitCost: Number(item.harga_pokok_rata_rata)
+            }))
+        ];
+        const endingInventory = inventoryItems.reduce(
+            (sum, item) => sum + item.stock * item.unitCost,
+            0
+        );
+        const unvaluedItems = inventoryItems.filter(
+            (item) => item.stock > 0 && item.unitCost <= 0
+        );
+        const legacySales = transactions.filter(
+            (item) => item.jenis_transaksi === "KELUAR" && Number(item.nilai_penjualan || 0) <= 0
+        ).length;
+        const journal = journalResult.data || [];
+        const totalDebit = journal.reduce((sum, item) => sum + Number(item.debit || 0), 0);
+        const totalCredit = journal.reduce((sum, item) => sum + Number(item.kredit || 0), 0);
+
+        document.getElementById("laporanPenjualan").textContent = formatRupiah(sales);
+        document.getElementById("laporanHpp").textContent = formatRupiah(hpp);
+        document.getElementById("laporanLabaKotor").textContent = formatRupiah(sales - hpp);
+        document.getElementById("laporanPembelian").textContent = formatRupiah(purchases);
+        document.getElementById("laporanNilaiPersediaan").textContent = formatRupiah(endingInventory);
+        document.getElementById("totalDebit").textContent = formatRupiah(totalDebit);
+        document.getElementById("totalKredit").textContent = formatRupiah(totalCredit);
+
+        const warnings = [];
+        if (unvaluedItems.length) {
+            warnings.push(
+                `Stok tanpa nilai: ${unvaluedItems.map((item) => item.name).join(", ")}. Catat Penilaian Stok Lama sebelum produksi atau penjualan.`
+            );
+        }
+        if (legacySales) {
+            warnings.push(`${legacySales} transaksi penjualan lama belum memiliki nilai penjualan/HPP, sehingga laba kotor periode ini belum lengkap.`);
+        }
+        if (Math.abs(totalDebit - totalCredit) > 0.01) {
+            warnings.push("Total debit dan kredit jurnal tidak seimbang. Periksa transaksi periode ini.");
+        }
+        warning.hidden = warnings.length === 0;
+        warning.textContent = warnings.join(" ");
+
+        let currentTransactionId = null;
+        let transactionGroupIndex = -1;
+        journalBody.innerHTML = journal.length
+            ? journal.map((item) => {
+                if (item.id_transaksi !== currentTransactionId) {
+                    currentTransactionId = item.id_transaksi;
+                    transactionGroupIndex += 1;
+                }
+                const rowClass = transactionGroupIndex % 2 === 0
+                    ? "journal-entry-start"
+                    : "journal-entry-counterpart";
+
+                return `
+                    <tr class="${rowClass}">
+                        <td>${escapeHTML(item.tanggal)}</td>
+                        <td>${escapeHTML(item.akun)}</td>
+                        <td>${escapeHTML(item.keterangan || "-")}</td>
+                        <td>${formatRupiah(item.debit)}</td>
+                        <td>${formatRupiah(item.kredit)}</td>
+                    </tr>
+                `;
+            }).join("")
+            : '<tr><td colspan="5" class="empty-data">Belum ada jurnal pada periode ini.</td></tr>';
+    } catch (error) {
+        console.error("Gagal memuat laporan akuntansi:", error);
+        showNotification(error.message || "Gagal memuat laporan akuntansi.", "error");
+    }
 }
 
 
@@ -238,124 +569,270 @@ function showPage(pageId) {
 ===================================================== */
 
 async function loadDashboard() {
-
     try {
-
-        // Bahan baku
-        const {
-            count: jumlahBahan,
-            error: errorBahan
-        } = await supabaseClient
+        const now = new Date();
+        const today = formatDateForDatabase(now);
+        const monthStart = formatDateForDatabase(new Date(now.getFullYear(), now.getMonth(), 1));
+        const sevenDaysAgo = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6);
+        const activityStart = formatDateForDatabase(sevenDaysAgo);
+        const [
+            bahanResult,
+            barangResult,
+            transaksiBulanResult,
+            aktivitasResult
+        ] = await Promise.all([
+            supabaseClient
             .from("bahan_baku")
-            .select("*", {
-                count: "exact",
-                head: true
-            })
-            .eq("aktif", true);
-
-
-        if (errorBahan) {
-            throw errorBahan;
-        }
-
-
-        // Barang jadi
-        const {
-            count: jumlahBarang,
-            error: errorBarang
-        } = await supabaseClient
+                .select("id_bahan, nama_bahan, satuan, stok, stok_minimum", { count: "exact" })
+                .eq("aktif", true)
+                .order("nama_bahan", { ascending: true }),
+            supabaseClient
             .from("barang_jadi")
-            .select("*", {
-                count: "exact",
-                head: true
-            })
-            .eq("aktif", true);
-
-
-        if (errorBarang) {
-            throw errorBarang;
-        }
-
-
-        // Transaksi masuk
-        const {
-            data: transaksiMasuk,
-            error: errorMasuk
-        } = await supabaseClient
+                .select("id_barang, nama_barang, kategori, stok", { count: "exact" })
+                .eq("aktif", true)
+                .order("nama_barang", { ascending: true }),
+            supabaseClient
             .from("transaksi")
-            .select("jumlah")
-            .eq("jenis_transaksi", "MASUK");
-
-
-        if (errorMasuk) {
-            throw errorMasuk;
-        }
-
-
-        // Transaksi keluar
-        const {
-            data: transaksiKeluar,
-            error: errorKeluar
-        } = await supabaseClient
+                .select("jenis_transaksi, jumlah, id_barang, barang_jadi(nama_barang)")
+                .gte("tanggal", monthStart)
+                .lte("tanggal", today)
+                .order("tanggal", { ascending: false }),
+            supabaseClient
             .from("transaksi")
-            .select("jumlah")
-            .eq("jenis_transaksi", "KELUAR");
+                .select("id_transaksi, tanggal, jenis_transaksi, jumlah, keterangan, bahan_baku(nama_bahan, satuan), barang_jadi(nama_barang)")
+                .gte("tanggal", activityStart)
+                .lte("tanggal", today)
+                .order("tanggal", { ascending: false })
+                .order("id_transaksi", { ascending: false })
+                .limit(50)
+        ]);
 
+        [bahanResult, barangResult, transaksiBulanResult, aktivitasResult].forEach((result) => {
+            if (result.error) {
+                throw result.error;
+            }
+        });
 
-        if (errorKeluar) {
-            throw errorKeluar;
-        }
+        const bahan = bahanResult.data || [];
+        const barang = barangResult.data || [];
+        const transaksiBulan = transaksiBulanResult.data || [];
+        const aktivitas = aktivitasResult.data || [];
+        const pergerakanMasuk = transaksiBulan.filter((item) =>
+            ["MASUK", "PRODUKSI", "SALDO_AWAL", "PENILAIAN_AWAL"].includes(
+                String(item.jenis_transaksi || "").toUpperCase()
+            )
+        ).length;
+        const pergerakanKeluar = transaksiBulan.filter((item) =>
+            ["BAHAN_KELUAR", "KELUAR"].includes(
+                String(item.jenis_transaksi || "").toUpperCase()
+            )
+        ).length;
 
+        document.getElementById("totalBahanBaku").textContent = (bahanResult.count || 0).toLocaleString("id-ID");
+        document.getElementById("totalBarangJadi").textContent = (barangResult.count || 0).toLocaleString("id-ID");
+        document.getElementById("totalStokMasuk").textContent = pergerakanMasuk.toLocaleString("id-ID");
+        document.getElementById("totalStokKeluar").textContent = pergerakanKeluar.toLocaleString("id-ID");
 
-        const totalMasuk =
-            (transaksiMasuk || []).reduce(
-                (total, item) =>
-                    total + Number(item.jumlah),
-                0
-            );
-
-
-        const totalKeluar =
-            (transaksiKeluar || []).reduce(
-                (total, item) =>
-                    total + Number(item.jumlah),
-                0
-            );
-
-
-        document.getElementById(
-            "totalBahanBaku"
-        ).textContent =
-            jumlahBahan || 0;
-
-
-        document.getElementById(
-            "totalBarangJadi"
-        ).textContent =
-            jumlahBarang || 0;
-
-
-        document.getElementById(
-            "totalStokMasuk"
-        ).textContent =
-            totalMasuk;
-
-
-        document.getElementById(
-            "totalStokKeluar"
-        ).textContent =
-            totalKeluar;
-
-
+        renderDashboardStockChart(bahan);
+        renderDashboardCategoryChart(barang);
+        renderDashboardLowStock(bahan);
+        renderDashboardBestSellers(transaksiBulan);
+        renderDashboardActivity(aktivitas);
     } catch (error) {
+        console.error("Gagal memuat dashboard:", error);
+        showNotification("Gagal memuat ringkasan dashboard. Periksa koneksi dan izin data.", "error");
+    }
+}
 
-        console.error(
-            "Dashboard error:",
-            error
-        );
+function formatDateForDatabase(date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+}
 
+function formatDashboardQuantity(value) {
+    return Number(value || 0).toLocaleString("id-ID", {
+        maximumFractionDigits: 2
+    });
+}
+
+function renderDashboardStockChart(bahan) {
+    const container = document.getElementById("dashboardStockChart");
+    if (!container) return;
+
+    if (bahan.length === 0) {
+        container.innerHTML = '<p class="dashboard-empty">Belum ada data bahan baku aktif.</p>';
+        return;
     }
 
+    const stocks = [...bahan]
+        .sort((a, b) => Number(b.stok || 0) - Number(a.stok || 0))
+        .slice(0, 5);
+    const maximum = Math.max(...stocks.map((item) => Number(item.stok || 0)), 1);
+
+    container.innerHTML = stocks.map((item) => {
+        const stock = Number(item.stok || 0);
+        const width = Math.max(stock > 0 ? 4 : 0, (stock / maximum) * 100);
+        return `
+            <div class="stock-chart-row">
+                <div class="stock-chart-label">
+                    <span>${escapeHTML(item.nama_bahan)}</span>
+                    <strong>${formatDashboardQuantity(stock)} ${escapeHTML(item.satuan || "")}</strong>
+                </div>
+                <div class="stock-chart-track" role="img" aria-label="${escapeHTML(item.nama_bahan)}: ${formatDashboardQuantity(stock)} ${escapeHTML(item.satuan || "")}">
+                    <span style="width:${width}%"></span>
+                </div>
+            </div>
+        `;
+    }).join("");
+}
+
+function renderDashboardCategoryChart(barang) {
+    const container = document.getElementById("dashboardCategoryChart");
+    if (!container) return;
+
+    if (barang.length === 0) {
+        container.innerHTML = '<p class="dashboard-empty">Belum ada koleksi barang jadi aktif.</p>';
+        return;
+    }
+
+    const categories = new Map();
+    barang.forEach((item) => {
+        const category = String(item.kategori || "").trim() || "Belum dikategorikan";
+        categories.set(category, (categories.get(category) || 0) + 1);
+    });
+
+    const palette = ["#5c1a2e", "#a45b68", "#c49863", "#7d8060", "#796178", "#d7b994"];
+    let offset = 0;
+    const entries = [...categories.entries()]
+        .sort((a, b) => b[1] - a[1])
+        .map(([name, count], index) => {
+            const start = offset;
+            offset += (count / barang.length) * 100;
+            return { name, count, color: palette[index % palette.length], start, end: offset };
+        });
+    const gradient = entries
+        .map((item) => `${item.color} ${item.start}% ${item.end}%`)
+        .join(", ");
+
+    container.innerHTML = `
+        <div class="category-chart-layout">
+            <div class="category-donut" role="img" aria-label="Komposisi ${barang.length} barang jadi berdasarkan kategori" style="background:conic-gradient(${gradient})">
+                <span>${barang.length}<small>produk</small></span>
+            </div>
+            <ul class="category-legend">
+                ${entries.map((item) => `
+                    <li>
+                        <span class="category-swatch" style="--category-color:${item.color}"></span>
+                        <span class="category-name">${escapeHTML(item.name)}</span>
+                        <strong>${item.count}</strong>
+                    </li>
+                `).join("")}
+            </ul>
+        </div>
+    `;
+}
+
+function renderDashboardLowStock(bahan) {
+    const container = document.getElementById("dashboardLowStock");
+    if (!container) return;
+
+    const lowStock = bahan
+        .filter((item) => Number(item.stok_minimum || 0) > 0 && Number(item.stok || 0) <= Number(item.stok_minimum))
+        .sort((a, b) => Number(a.stok || 0) - Number(b.stok || 0));
+
+    if (lowStock.length === 0) {
+        container.innerHTML = bahan.length
+            ? '<p class="dashboard-empty">Tidak ada bahan yang menyentuh batas minimum.</p>'
+            : '<p class="dashboard-empty">Belum ada data bahan baku aktif.</p>';
+        return;
+    }
+
+    container.innerHTML = lowStock.slice(0, 6).map((item) => `
+        <div class="dashboard-list-row low-stock-row">
+            <span class="dashboard-alert-dot" aria-hidden="true"></span>
+            <span class="dashboard-list-name">${escapeHTML(item.nama_bahan)}</span>
+            <strong>${formatDashboardQuantity(item.stok)} ${escapeHTML(item.satuan || "")}</strong>
+        </div>
+    `).join("");
+}
+
+function renderDashboardBestSellers(transaksi) {
+    const container = document.getElementById("dashboardBestSellers");
+    if (!container) return;
+
+    const products = new Map();
+    transaksi
+        .filter((item) => String(item.jenis_transaksi || "").toUpperCase() === "KELUAR" && item.id_barang)
+        .forEach((item) => {
+            const entry = products.get(item.id_barang) || {
+                name: item.barang_jadi?.nama_barang || "Barang jadi",
+                quantity: 0
+            };
+            entry.quantity += Number(item.jumlah || 0);
+            products.set(item.id_barang, entry);
+        });
+
+    const bestSellers = [...products.values()]
+        .sort((a, b) => b.quantity - a.quantity)
+        .slice(0, 5);
+
+    if (bestSellers.length === 0) {
+        container.innerHTML = '<p class="dashboard-empty">Belum ada transaksi penjualan bulan ini.</p>';
+        return;
+    }
+
+    container.innerHTML = bestSellers.map((item, index) => `
+        <div class="dashboard-list-row">
+            <span class="best-seller-rank">${index + 1}</span>
+            <span class="dashboard-list-name">${escapeHTML(item.name)}</span>
+            <strong>${formatDashboardQuantity(item.quantity)} unit</strong>
+        </div>
+    `).join("");
+}
+
+function renderDashboardActivity(aktivitas) {
+    const container = document.getElementById("dashboardRecentActivity");
+    if (!container) return;
+
+    const labels = {
+        MASUK: "Bahan masuk",
+        BAHAN_KELUAR: "Bahan keluar",
+        PRODUKSI: "Produksi",
+        KELUAR: "Penjualan",
+        SALDO_AWAL: "Saldo awal",
+        PENILAIAN_AWAL: "Penilaian stok"
+    };
+
+    if (aktivitas.length === 0) {
+        container.innerHTML = '<tr><td class="dashboard-empty" colspan="5">Belum ada aktivitas dalam 7 hari terakhir.</td></tr>';
+        return;
+    }
+
+    container.innerHTML = aktivitas.slice(0, 10).map((item) => {
+        const type = String(item.jenis_transaksi || "").toUpperCase();
+        const product = item.barang_jadi?.nama_barang;
+        const material = item.bahan_baku?.nama_bahan;
+        const itemName = product || material || item.keterangan || "-";
+        const unit = product ? "unit" : (item.bahan_baku?.satuan || "");
+        const date = item.tanggal
+            ? new Date(`${item.tanggal}T00:00:00`).toLocaleDateString("id-ID", {
+                day: "2-digit",
+                month: "short",
+                year: "numeric"
+            })
+            : "-";
+        return `
+            <tr>
+                <td>${escapeHTML(date)}</td>
+                <td><span class="activity-type activity-${type.toLowerCase()}">${escapeHTML(labels[type] || type)}</span></td>
+                <td>${escapeHTML(itemName)}</td>
+                <td>${formatDashboardQuantity(item.jumlah)} ${escapeHTML(unit)}</td>
+                <td><span class="activity-status">Selesai</span></td>
+            </tr>
+        `;
+    }).join("");
 }
 
 
@@ -423,7 +900,7 @@ function renderBahanBaku(
         tabel.innerHTML = `
             <tr>
                 <td
-                    colspan="7"
+                    colspan="8"
                     class="empty-data">
                     Belum ada data bahan baku.
                 </td>
@@ -495,6 +972,8 @@ function renderBahanBaku(
                     ${item.stok}
                 </td>
 
+                <td>${formatRupiah(item.harga_pokok_rata_rata)}</td>
+
                 <td>
 
                     <button
@@ -546,6 +1025,11 @@ function openBahanBakuForm() {
     document.getElementById(
         "stokBahan"
     ).value = 0;
+    document.getElementById("stokBahan").readOnly = false;
+    document.getElementById("hargaPokokBahan").value = 0;
+    document.getElementById("hargaPokokBahan").readOnly = false;
+    document.getElementById("hargaPokokBahanHint").textContent =
+        "Saldo awal akan dibuatkan jurnal modal. Stok masuk berikutnya dicatat lewat Transaksi.";
 
 
     document.querySelector(
@@ -607,8 +1091,9 @@ async function saveBahanBaku(event) {
             ).value
         );
 
+    const hargaPokok = Number(document.getElementById("hargaPokokBahan").value);
 
-    if (!kode || !nama || !jenis || !satuan) {
+    if (!kode || !nama || !jenis || !satuan || stok < 0 || hargaPokok < 0) {
 
         showNotification(
             "Semua data bahan baku harus diisi.",
@@ -618,6 +1103,10 @@ async function saveBahanBaku(event) {
         return;
     }
 
+    if (!editBahanBakuId && stok > 0 && hargaPokok <= 0) {
+        showNotification("Isi harga perolehan per satuan untuk saldo awal bahan.", "warning");
+        return;
+    }
 
     try {
 
@@ -633,8 +1122,7 @@ async function saveBahanBaku(event) {
                     kode_bahan: kode,
                     nama_bahan: nama,
                     jenis_bahan: jenis,
-                    satuan: satuan,
-                    stok: stok
+                    satuan: satuan
                 })
                 .eq(
                     "id_bahan",
@@ -657,6 +1145,7 @@ async function saveBahanBaku(event) {
             // INSERT
 
             const {
+                data: bahanBaru,
                 error
             } = await supabaseClient
                 .from("bahan_baku")
@@ -665,14 +1154,32 @@ async function saveBahanBaku(event) {
                     nama_bahan: nama,
                     jenis_bahan: jenis,
                     satuan: satuan,
-                    stok: stok
-                }]);
+                    stok: 0,
+                    harga_pokok_rata_rata: 0
+                }])
+                .select("id_bahan")
+                .single();
 
 
             if (error) {
                 throw error;
             }
 
+            if (stok > 0) {
+                const { error: openingError } = await supabaseClient
+                    .from("transaksi")
+                    .insert([{
+                        tanggal: getTodayDateString(),
+                        jenis_transaksi: "SALDO_AWAL",
+                        keterangan: "Saldo awal bahan baku",
+                        jumlah: stok,
+                        harga_perolehan_satuan: hargaPokok,
+                        id_bahan: bahanBaru.id_bahan,
+                        id_barang: null
+                    }]);
+
+                if (openingError) throw openingError;
+            }
 
             showNotification(
                 "Bahan baku berhasil ditambahkan.",
@@ -783,6 +1290,12 @@ async function editBahanBaku(id) {
         "stokBahan"
     ).value =
         item.stok;
+
+    document.getElementById("stokBahan").readOnly = true;
+    document.getElementById("hargaPokokBahan").value = item.harga_pokok_rata_rata || 0;
+    document.getElementById("hargaPokokBahan").readOnly = true;
+    document.getElementById("hargaPokokBahanHint").textContent =
+        "Saldo dan nilai persediaan hanya diubah melalui Transaksi agar jurnal tetap seimbang.";
 
 
     window.scrollTo({
@@ -1006,7 +1519,7 @@ function renderBarangJadi(
         tabel.innerHTML = `
             <tr>
                 <td
-                    colspan="9"
+                    colspan="11"
                     class="empty-data">
                     Belum ada data barang jadi.
                 </td>
@@ -1090,6 +1603,12 @@ function renderBarangJadi(
                     )}
                 </td>
 
+                <td>${Number(item.stok) > 0 || Number(item.harga_pokok_rata_rata) > 0
+                    ? formatRupiah(item.harga_pokok_rata_rata)
+                    : "-"}</td>
+
+                <td>${formatRecipeUnitCost(getRecipeUnitCost(item.id_barang))}</td>
+
                 <td>
 
                     <button
@@ -1143,10 +1662,10 @@ function openBarangJadiForm() {
         "stokBarang"
     ).value = 0;
 
-    document.getElementById("stokBarang").readOnly = false;
+    document.getElementById("stokBarang").readOnly = true;
     document.querySelector('#formBarangJadi label[for="stokBarang"]').textContent = "Stok Awal";
     document.getElementById("stokBarangHint").textContent =
-        "Saldo awal yang sudah tersedia. Untuk membuat stok dari bahan, tambahkan bahan habis pakai lalu catat Produksi.";
+        "Stok baru bertambah melalui Produksi setelah resep disimpan di menu Bahan Habis Pakai.";
 
 
     document.querySelector(
@@ -1176,47 +1695,33 @@ async function saveBarangJadi(event) {
 
     event.preventDefault();
 
-
     const kode =
         document.getElementById(
             "kodeBarang"
         ).value.trim();
-
-
     const nama =
         document.getElementById(
             "namaBarang"
         ).value.trim();
-
-
     const kategori =
         document.getElementById(
             "kategoriBarang"
         ).value.trim();
-
-
     const ukuran =
         document.getElementById(
             "ukuranBarang"
         ).value;
-
-
     const warna =
         document.getElementById(
             "warnaBarang"
         ).value.trim();
-
     const stok = Number(document.getElementById("stokBarang").value);
-
-
     const harga =
         Number(
             document.getElementById(
                 "hargaBarang"
             ).value
         );
-
-
     if (
         !kode ||
         !nama ||
@@ -1226,45 +1731,24 @@ async function saveBarangJadi(event) {
         !Number.isInteger(stok) ||
         stok < 0
     ) {
-
         showNotification(
             "Lengkapi data barang jadi dan isi stok dengan bilangan bulat minimal 0.",
             "warning"
         );
-
         return;
     }
 
+    if (!editBarangJadiId && stok > 0) {
+        showNotification(
+            "Simpan barang jadi tanpa stok awal dahulu, lalu tambahkan resep di menu Bahan Habis Pakai.",
+            "warning"
+        );
+        return;
+    }
 
-    try {
-
-        if (editBarangJadiId) {
-
-            const barangLama = dataBarangJadi.find(
-                (item) => Number(item.id_barang) === Number(editBarangJadiId)
-            );
-            const stokAwal = Number(barangLama ? barangLama.stok : 0);
-            const perubahanStok = stok - stokAwal;
-
-            if (perubahanStok > 0) {
-                const resepProduk = dataResep.filter(
-                    (item) => Number(item.id_barang) === Number(editBarangJadiId)
-                );
-
-                if (resepProduk.length === 0) {
-                    showNotification("Tambahkan bahan habis pakai sebelum menambah stok produksi.", "warning");
-                    return;
-                }
-
-                if (resepProduk.some((item) => item.bahan_baku && item.bahan_baku.aktif === false)) {
-                    showNotification("Perbarui bahan habis pakai yang diarsipkan sebelum produksi.", "warning");
-                    return;
-                }
-            }
-
-            const {
-                error
-            } = await supabaseClient
+    if (editBarangJadiId) {
+        try {
+            const { error } = await supabaseClient
                 .from("barang_jadi")
                 .update({
                     kode_barang: kode,
@@ -1274,53 +1758,18 @@ async function saveBarangJadi(event) {
                     warna: warna,
                     harga_jual: harga
                 })
-                .eq(
-                    "id_barang",
-                    editBarangJadiId
-                );
+                .eq("id_barang", editBarangJadiId);
+            if (error) throw error;
 
-
-            if (error) {
-                throw error;
-            }
-
-            if (perubahanStok !== 0) {
-                const tanggalSekarang = new Date();
-                const tanggal = [
-                    tanggalSekarang.getFullYear(),
-                    String(tanggalSekarang.getMonth() + 1).padStart(2, "0"),
-                    String(tanggalSekarang.getDate()).padStart(2, "0")
-                ].join("-");
-
-                const { error: transaksiError } = await supabaseClient
-                    .from("transaksi")
-                    .insert([{
-                        tanggal: tanggal,
-                        jenis_transaksi: perubahanStok > 0 ? "PRODUKSI" : "KELUAR",
-                        keterangan: "Penyesuaian stok dari form Barang Jadi",
-                        jumlah: Math.abs(perubahanStok),
-                        id_bahan: null,
-                        id_barang: editBarangJadiId
-                    }]);
-
-                if (transaksiError) {
-                    throw transaksiError;
-                }
-            }
-
-
-            showNotification(
-                perubahanStok === 0
-                    ? "Data barang jadi berhasil diperbarui."
-                    : "Stok berhasil diperbarui dan dicatat sebagai transaksi.",
-                "success"
-            );
-
-        } else {
-
-            const {
-                error
-            } = await supabaseClient
+            showNotification("Data barang jadi berhasil diperbarui. Perubahan stok dicatat melalui menu Transaksi.", "success");
+        } catch (error) {
+            console.error(error);
+            showNotification(error.message || "Gagal memperbarui barang jadi.", "error");
+            return;
+        }
+    } else {
+        try {
+            const { error } = await supabaseClient
                 .from("barang_jadi")
                 .insert([{
                     kode_barang: kode,
@@ -1328,60 +1777,36 @@ async function saveBarangJadi(event) {
                     kategori: kategori,
                     ukuran: ukuran,
                     warna: warna,
-                    stok: stok,
+                    stok: 0,
+                    harga_pokok_rata_rata: 0,
                     harga_jual: harga
                 }]);
-
-
-            if (error) {
-                throw error;
+            if (error) throw error;
+        } catch (error) {
+            console.error(error);
+            if (error.code === "23505") {
+                showNotification("Kode barang sudah digunakan.", "error");
+            } else {
+                const detailError = [error.message, error.details, error.hint]
+                    .filter(Boolean)
+                    .join(" ");
+                showNotification(detailError || "Gagal menyimpan barang jadi.", "error");
             }
-
-
-            showNotification(
-                "Barang jadi berhasil ditambahkan dengan stok awal.",
-                "success"
-            );
-
+            return;
         }
 
-
-        closeBarangJadiForm();
-
-        await loadBarangJadi();
-
-        await loadResep();
-
-        await loadPersediaan();
-
-        await loadDashboard();
-
-        createTransactionItemSelect();
-
-
-    } catch (error) {
-
-        console.error(error);
-
-        if (
-            error.code === "23505"
-        ) {
-
-            showNotification(
-                "Kode barang sudah digunakan.",
-                "error"
-            );
-
-        } else {
-
-            const detailError = [error.message, error.details, error.hint]
-                .filter(Boolean)
-                .join(" ");
-            showNotification(detailError || "Gagal menyimpan barang jadi.", "error");
-
-        }
-
+        showNotification(
+            "Barang jadi berhasil disimpan. Tambahkan resep di menu Bahan Habis Pakai; HPP per unit dihitung otomatis.",
+            "success"
+        );
     }
+
+    closeBarangJadiForm();
+    await loadBarangJadi();
+    await loadResep();
+    await loadPersediaan();
+    await loadDashboard();
+    createTransactionItemSelect();
 
 }
 
@@ -1412,10 +1837,10 @@ async function editBarangJadi(id) {
         "formBarangJadi"
     ).classList.remove("hidden");
 
-    document.getElementById("stokBarang").readOnly = false;
+    document.getElementById("stokBarang").readOnly = true;
     document.querySelector('#formBarangJadi label[for="stokBarang"]').textContent = "Stok Saat Ini";
     document.getElementById("stokBarangHint").textContent =
-        "Jika jumlah dinaikkan, sistem mencatat Produksi dan memakai bahan sesuai resep. Jika diturunkan, sistem mencatat Stok Keluar.";
+        "Stok hanya berubah melalui transaksi agar HPP, bahan, dan jurnal tetap terhubung.";
 
 
     document.querySelector(
@@ -1464,7 +1889,6 @@ async function editBarangJadi(id) {
         "hargaBarang"
     ).value =
         item.harga_jual;
-
 
     window.scrollTo({
         top: 0,
@@ -1636,7 +2060,7 @@ async function loadResep() {
 
     const { data, error } = await supabaseClient
         .from("detail_produksi")
-        .select("*, bahan_baku(nama_bahan, satuan, aktif), barang_jadi(nama_barang, kode_barang)")
+        .select("*, bahan_baku(nama_bahan, satuan, aktif, harga_pokok_rata_rata), barang_jadi(nama_barang, kode_barang)")
         .order("id_detail", { ascending: true });
 
     if (error) {
@@ -1648,8 +2072,30 @@ async function loadResep() {
     dataResep = data || [];
     renderResep();
     populateRecipeOptions();
+    renderBarangJadi();
+    createTransactionItemSelect();
 }
 
+function getRecipeUnitCost(idBarang) {
+    const recipe = dataResep.filter((item) => Number(item.id_barang) === Number(idBarang));
+    if (recipe.length === 0) return null;
+
+    let total = 0;
+    for (const item of recipe) {
+        if (item.bahan_baku && item.bahan_baku.aktif === false) return null;
+        const unitCost = Number(item.bahan_baku && item.bahan_baku.harga_pokok_rata_rata || 0);
+        if (unitCost <= 0) return null;
+        total += Number(item.jumlah_digunakan) * unitCost;
+    }
+
+    return total;
+}
+
+function formatRecipeUnitCost(value) {
+    return value === null
+        ? '<span title="Lengkapi resep dan nilai persediaan bahan baku terlebih dahulu">Belum dapat dihitung</span>'
+        : formatRupiah(value);
+}
 
 function renderResep() {
 
@@ -1762,6 +2208,8 @@ function syncTransactionCategory() {
         jenisBarang.value = "bahan_baku";
     } else if (["keluar", "produksi"].includes(jenisTransaksi)) {
         jenisBarang.value = "barang_jadi";
+    } else if (["saldo_awal", "penilaian_awal"].includes(jenisTransaksi) && !jenisBarang.value) {
+        jenisBarang.value = "bahan_baku";
     }
 
     if (jumlahTransaksi) {
@@ -1771,6 +2219,184 @@ function syncTransactionCategory() {
     }
 
     createTransactionItemSelect();
+    syncTransactionFields();
+    updateTransactionPreview();
+}
+
+function syncTransactionFields() {
+    const type = document.getElementById("jenisTransaksi").value;
+    const purchase = type === "masuk";
+    const sale = type === "keluar";
+    const opening = type === "saldo_awal";
+    const valuation = type === "penilaian_awal";
+    const purchasePrice = document.getElementById("hargaPerolehanTransaksi");
+    const salePrice = document.getElementById("hargaJualTransaksi");
+    const payment = document.getElementById("metodePembayaranTransaksi");
+    const quantity = document.getElementById("jumlahTransaksi");
+    const category = document.getElementById("jenisBarangTransaksi");
+
+    document.getElementById("hargaPerolehanWrapper").hidden = !(purchase || opening || valuation);
+    document.querySelector('#hargaPerolehanWrapper label').textContent =
+        purchase ? "Harga Beli per Satuan (Rp)" : "Harga Pokok per Satuan (Rp)";
+    document.getElementById("hargaJualWrapper").hidden = !sale;
+    document.getElementById("metodePembayaranWrapper").hidden = !(purchase || sale);
+
+    purchasePrice.required = purchase || opening || valuation;
+    salePrice.required = sale;
+    payment.required = purchase || sale;
+
+    const fixedCategory = ["masuk", "bahan_keluar"].includes(type)
+        ? "bahan_baku"
+        : (["keluar", "produksi"].includes(type) ? "barang_jadi" : null);
+    category.disabled = Boolean(fixedCategory);
+    if (fixedCategory) category.value = fixedCategory;
+
+    quantity.readOnly = valuation;
+    document.querySelector('label[for="jumlahTransaksi"]').textContent =
+        valuation ? "Stok Saat Ini (tidak berubah)" : "Jumlah";
+
+}
+
+function syncTransactionItemDetails() {
+    const type = document.getElementById("jenisTransaksi").value;
+    const picker = document.getElementById("itemTransaksi");
+    if (!picker || !picker.value) return;
+
+    if (type === "penilaian_awal") {
+        const [itemType, id] = picker.value.split("-");
+        const records = itemType === "bahan" ? dataBahanBaku : dataBarangJadi;
+        const idField = itemType === "bahan" ? "id_bahan" : "id_barang";
+        const record = records.find((item) => String(item[idField]) === id);
+        if (record) {
+            document.getElementById("jumlahTransaksi").value = record.stok;
+            document.getElementById("jumlahTransaksi").min = record.stok || "0";
+        }
+    } else if (type === "keluar") {
+        const id = Number(picker.value.split("-")[1]);
+        const record = dataBarangJadi.find((item) => Number(item.id_barang) === id);
+        if (record) document.getElementById("hargaJualTransaksi").value = record.harga_jual || "";
+    }
+
+    updateTransactionPreview();
+}
+
+function updateTransactionPreview() {
+    const preview = document.getElementById("nilaiTransaksiPreview");
+    if (!preview) return;
+
+    const type = document.getElementById("jenisTransaksi").value;
+    const quantity = Number(document.getElementById("jumlahTransaksi").value);
+    const purchasePrice = Number(document.getElementById("hargaPerolehanTransaksi").value);
+    const salePrice = Number(document.getElementById("hargaJualTransaksi").value);
+    const picker = document.getElementById("itemTransaksi");
+    const selected = picker && picker.value ? picker.value.split("-") : [];
+    const itemId = selected.length === 2 ? Number(selected[1]) : 0;
+    const selectedItem = selected[0] === "bahan"
+        ? dataBahanBaku.find((item) => Number(item.id_bahan) === itemId)
+        : dataBarangJadi.find((item) => Number(item.id_barang) === itemId);
+
+    if (!type) {
+        preview.textContent = "Pilih jenis transaksi terlebih dahulu. Kolom nilai dan HPP akan muncul setelah jenis transaksi dipilih.";
+        return;
+    }
+
+    if (["masuk", "saldo_awal", "penilaian_awal"].includes(type)) {
+        const amount = quantity * purchasePrice;
+        const label = type === "masuk" ? "Nilai pembelian bahan" : "Nilai persediaan";
+        preview.textContent = amount > 0
+            ? `${label}: ${formatRupiah(amount)} (${quantity} × ${formatRupiah(purchasePrice)} per satuan)`
+            : "Isi jumlah dan harga perolehan per satuan untuk melihat total nilai persediaan.";
+        return;
+    } else if (type === "bahan_keluar") {
+        const unitCost = Number(selectedItem && selectedItem.harga_pokok_rata_rata || 0);
+        const amount = quantity * unitCost;
+        preview.textContent = amount > 0
+            ? `Nilai bahan yang dipakai: ${formatRupiah(amount)} (${quantity} × ${formatRupiah(unitCost)} per satuan)`
+            : "Nilai pemakaian bahan belum dapat dihitung. Pilih bahan yang sudah dinilai dan isi jumlah.";
+        return;
+    } else if (type === "keluar") {
+        const revenue = quantity * salePrice;
+        const unitCost = Number(selectedItem && selectedItem.harga_pokok_rata_rata || 0);
+        if (quantity <= 0 || salePrice <= 0) {
+            preview.textContent = "Isi jumlah dan harga jual per unit. Sistem menghitung HPP dari HPP rata-rata barang jadi.";
+            return;
+        }
+
+        const hpp = unitCost > 0 ? quantity * unitCost : null;
+        const grossProfit = hpp === null ? null : revenue - hpp;
+        preview.textContent = [
+            `Nominal penjualan: ${formatRupiah(revenue)}`,
+            hpp === null ? "HPP belum dapat dihitung: nilai stok barang jadi belum tersedia." : `HPP: ${formatRupiah(hpp)}`,
+            grossProfit === null ? "" : `Perkiraan laba kotor: ${formatRupiah(grossProfit)}`
+        ].filter(Boolean).join(" | ");
+        return;
+    } else if (type === "produksi") {
+        if (quantity <= 0 || !itemId) {
+            preview.textContent = "Pilih barang jadi dan isi jumlah produksi. Sistem menghitung nilai bahan sesuai resep sebagai HPP per unit.";
+            return;
+        }
+
+        const unitMaterialCost = getRecipeUnitCost(itemId);
+        if (unitMaterialCost === null) {
+            const hasRecipe = dataResep.some((item) => Number(item.id_barang) === itemId);
+            preview.textContent = hasRecipe
+                ? "HPP produksi belum dapat dihitung. Catat harga perolehan untuk seluruh bahan di resep terlebih dahulu."
+                : "HPP produksi belum dapat dihitung. Tambahkan resep bahan untuk barang jadi ini terlebih dahulu.";
+            return;
+        }
+
+        const materialCost = unitMaterialCost * quantity;
+        const unitCost = materialCost / quantity;
+        preview.textContent = [
+            `Biaya bahan: ${formatRupiah(materialCost)}`,
+            `Total nilai produksi: ${formatRupiah(materialCost)}`,
+            `Estimasi HPP per unit: ${formatRupiah(unitCost)}`
+        ].join(" | ");
+        return;
+    }
+
+    preview.textContent = "";
+}
+
+function getAutoTransactionDescription() {
+    const type = document.getElementById("jenisTransaksi").value;
+    const quantity = Number(document.getElementById("jumlahTransaksi").value);
+    const picker = document.getElementById("itemTransaksi");
+    const selected = picker && picker.value ? picker.value.split("-") : [];
+    const itemId = selected.length === 2 ? Number(selected[1]) : 0;
+    const isMaterial = selected[0] === "bahan";
+    const record = isMaterial
+        ? dataBahanBaku.find((item) => Number(item.id_bahan) === itemId)
+        : dataBarangJadi.find((item) => Number(item.id_barang) === itemId);
+    if (!type || !record || quantity <= 0) {
+        return "";
+    }
+
+    const name = isMaterial ? record.nama_bahan : record.nama_barang;
+    const unit = isMaterial ? record.satuan : "unit";
+    const quantityText = Number.isInteger(quantity)
+        ? String(quantity)
+        : String(quantity).replace(".", ",");
+    const itemDescription = `${quantityText} ${unit} ${name}`;
+    const paymentLabels = {
+        TUNAI: "tunai",
+        TRANSFER: "transfer",
+        QRIS: "QRIS",
+        DEBIT: "kartu debit"
+    };
+    const payment = paymentLabels[
+        document.getElementById("metodePembayaranTransaksi").value
+    ];
+    const descriptions = {
+        masuk: `Pembelian bahan baku ${itemDescription}`,
+        bahan_keluar: `Pemakaian bahan baku ${itemDescription}`,
+        keluar: `Penjualan ${quantityText} ${name}${payment ? ` melalui ${payment}` : ""}`,
+        produksi: `Produksi ${quantityText} ${name}`,
+        saldo_awal: `Saldo awal persediaan ${itemDescription}`,
+        penilaian_awal: `Penilaian stok ${itemDescription}`
+    };
+
+    return descriptions[type] || "";
 }
 
 
@@ -1847,6 +2473,9 @@ function createTransactionItemSelect() {
 
     const jenis =
         jenisBarang.value;
+    const specialType = ["saldo_awal", "penilaian_awal"].includes(
+        document.getElementById("jenisTransaksi").value
+    );
 
 
     existing.innerHTML = `
@@ -1856,7 +2485,7 @@ function createTransactionItemSelect() {
     `;
 
 
-    if (jenis === "bahan_baku") {
+    if (jenis === "bahan_baku" || specialType) {
 
         dataBahanBaku.forEach(
             function (item) {
@@ -1885,32 +2514,46 @@ function createTransactionItemSelect() {
     }
 
 
-    if (jenis === "barang_jadi") {
+    if (jenis === "barang_jadi" || specialType) {
 
         dataBarangJadi.forEach(
             function (item) {
 
-                existing.innerHTML += `
-
-                    <option
-                        value="barang-${item.id_barang}">
-
-                        ${escapeHTML(
-                            item.kode_barang
-                        )}
-                        -
-                        ${escapeHTML(
-                            item.nama_barang
-                        )}
-                        (Stok: ${item.stok})
-
-                    </option>
-
-                `;
+                const hasProductionRecipe = dataResep.some(
+                    (recipeItem) => Number(recipeItem.id_barang) === Number(item.id_barang)
+                );
+                const matchingRecipeProduct = !hasProductionRecipe && dataBarangJadi.find(
+                    (candidate) =>
+                        candidate.nama_barang.trim().toLocaleLowerCase("id-ID") ===
+                            item.nama_barang.trim().toLocaleLowerCase("id-ID") &&
+                        dataResep.some(
+                            (recipeItem) => Number(recipeItem.id_barang) === Number(candidate.id_barang)
+                        )
+                );
+                const recipeStatus = document.getElementById("jenisTransaksi").value === "produksi"
+                    ? (hasProductionRecipe
+                        ? ""
+                        : matchingRecipeProduct
+                            ? ` (Resep ada pada ${matchingRecipeProduct.kode_barang})`
+                            : " (Resep belum dibuat)")
+                    : "";
+                const option = document.createElement("option");
+                option.value = `barang-${item.id_barang}`;
+                option.textContent = `${item.kode_barang} - ${item.nama_barang} (Stok: ${item.stok})${recipeStatus}`;
+                option.disabled = document.getElementById("jenisTransaksi").value === "produksi" && !hasProductionRecipe;
+                existing.add(option);
 
             }
         );
 
+    }
+
+    if (!existing.dataset.detailsListener) {
+        existing.addEventListener("change", function () {
+            syncTransactionItemDetails();
+            updateTransactionPreview();
+        });
+        existing.dataset.detailsListener = "true";
     }
 
 }
@@ -2028,7 +2671,7 @@ function renderTransaksi(data = dataTransaksi) {
 
         tabel.innerHTML = `
             <tr>
-                <td colspan="6" class="empty-data">
+                <td colspan="10" class="empty-data">
                     Belum ada transaksi.
                 </td>
             </tr>
@@ -2051,14 +2694,48 @@ function renderTransaksi(data = dataTransaksi) {
             item.bahan_baku
                 ? item.bahan_baku.nama_bahan
                 : (item.barang_jadi ? item.barang_jadi.nama_barang : "-");
+        const typeLabels = {
+            masuk: "Pembelian Bahan",
+            bahan_keluar: "Bahan Keluar",
+            produksi: "Produksi",
+            keluar: "Penjualan",
+            saldo_awal: "Saldo Awal",
+            penilaian_awal: "Penilaian Saldo Awal"
+        };
+        const paymentLabels = {
+            TUNAI: "Tunai",
+            TRANSFER: "Transfer",
+            QRIS: "QRIS",
+            DEBIT: "Debit"
+        };
+        const transactionType = (item.jenis_transaksi || "").toUpperCase();
+        const cashAmount = transactionType === "KELUAR"
+            ? Number(item.nilai_penjualan || 0)
+            : (transactionType === "MASUK"
+                ? Number(item.nilai_persediaan || 0)
+                : (transactionType === "PRODUKSI" ? Number(item.biaya_produksi || 0) : 0));
+        const inventoryValue = ["KELUAR", "PRODUKSI", "BAHAN_KELUAR", "SALDO_AWAL", "PENILAIAN_AWAL"]
+            .includes(transactionType)
+            ? Number(item.nilai_persediaan || 0)
+            : null;
+        const grossProfit = transactionType === "KELUAR" && cashAmount > 0 && inventoryValue > 0
+            ? cashAmount - inventoryValue
+            : null;
+        const amountText = (amount) => amount > 0 ? formatRupiah(amount) : "-";
 
         tabel.innerHTML += `
             <tr>
                 <td>${index + 1}</td>
                 <td>${escapeHTML(item.tanggal)}</td>
-                <td><span class="${statusClass}">${escapeHTML(item.jenis_transaksi)}</span></td>
+                <td><span class="${statusClass}">${escapeHTML(typeLabels[jenis] || item.jenis_transaksi)}</span></td>
                 <td>${escapeHTML(namaBarang)}</td>
-                <td>${item.jumlah}</td>
+                <td>${escapeHTML(item.jumlah)}</td>
+                <td>${amountText(cashAmount)}</td>
+                <td>${inventoryValue === null
+                    ? "-"
+                    : (inventoryValue > 0 ? formatRupiah(inventoryValue) : "Belum dihitung")}</td>
+                <td>${grossProfit === null ? "-" : formatRupiah(grossProfit)}</td>
+                <td>${escapeHTML(paymentLabels[item.metode_pembayaran] || "-")}</td>
                 <td>${escapeHTML(item.keterangan || "-")}</td>
             </tr>
         `;
@@ -2154,7 +2831,8 @@ function renderPersediaan() {
                 nama: item.nama_bahan,
                 jenis: "Bahan Baku",
                 stok: item.stok,
-                satuan: item.satuan
+                satuan: item.satuan,
+                unitCost: item.harga_pokok_rata_rata
             };
         }),
         ...dataBarangJadi.map(function (item) {
@@ -2162,7 +2840,8 @@ function renderPersediaan() {
                 nama: item.nama_barang,
                 jenis: "Barang Jadi",
                 stok: item.stok,
-                satuan: "pcs"
+                satuan: "pcs",
+                unitCost: item.harga_pokok_rata_rata
             };
         })
     ];
@@ -2171,7 +2850,7 @@ function renderPersediaan() {
 
         tabel.innerHTML = `
             <tr>
-                <td colspan="5" class="empty-data">
+                <td colspan="6" class="empty-data">
                     Belum ada data persediaan.
                 </td>
             </tr>
@@ -2199,6 +2878,7 @@ function renderPersediaan() {
                 <td>${escapeHTML(item.jenis)}</td>
                 <td class="${stokClass}">${item.stok}</td>
                 <td>${escapeHTML(item.satuan)}</td>
+                <td>${formatRupiah(Number(item.stok) * Number(item.unitCost || 0))}</td>
             </tr>
         `;
 
@@ -2220,7 +2900,10 @@ async function saveTransaksi(event) {
     const jenisBarang = document.getElementById("jenisBarangTransaksi").value;
     const itemTransaksi = document.getElementById("itemTransaksi");
     const jumlah = Number(document.getElementById("jumlahTransaksi").value);
-    const keterangan = document.getElementById("keteranganTransaksi").value.trim();
+    const keterangan = getAutoTransactionDescription();
+    const hargaPerolehan = Number(document.getElementById("hargaPerolehanTransaksi").value);
+    const hargaJual = Number(document.getElementById("hargaJualTransaksi").value);
+    const metodePembayaran = document.getElementById("metodePembayaranTransaksi").value;
 
     if (!tanggal || !jenisTransaksi || !jenisBarang || !itemTransaksi || !itemTransaksi.value) {
 
@@ -2232,7 +2915,7 @@ async function saveTransaksi(event) {
         return;
     }
 
-    if (!jumlah || jumlah <= 0) {
+    if ((!jumlah || jumlah <= 0) && jenisTransaksi !== "penilaian_awal") {
 
         showNotification(
             "Jumlah transaksi harus lebih dari 0.",
@@ -2265,13 +2948,39 @@ async function saveTransaksi(event) {
     const [tipeItem, idItemStr] = itemTransaksi.value.split("-");
     const idItem = Number(idItemStr);
 
-    if ((jenisBarang === "bahan_baku") !== (tipeItem === "bahan")) {
+    const specialType = ["saldo_awal", "penilaian_awal"].includes(jenisTransaksi);
+    if (!specialType && ((jenisBarang === "bahan_baku") !== (tipeItem === "bahan"))) {
         showNotification("Jenis barang tidak sesuai dengan jenis transaksi.", "warning");
         return;
     }
 
-    if (! ["masuk", "bahan_keluar"].includes(jenisTransaksi) && !Number.isInteger(jumlah)) {
+    const record = (tipeItem === "bahan" ? dataBahanBaku : dataBarangJadi)
+        .find((item) => Number(item[tipeItem === "bahan" ? "id_bahan" : "id_barang"]) === idItem);
+    const jumlahTransaksi = jenisTransaksi === "penilaian_awal"
+        ? Number(record ? record.stok : 0)
+        : jumlah;
+    if (!["masuk", "bahan_keluar"].includes(jenisTransaksi) && !Number.isInteger(jumlahTransaksi)) {
         showNotification("Jumlah barang jadi harus berupa bilangan bulat.", "warning");
+        return;
+    }
+
+    if (jenisTransaksi === "penilaian_awal" && jumlahTransaksi <= 0) {
+        showNotification("Pilih barang yang memiliki stok untuk menilai saldo awal.", "warning");
+        return;
+    }
+
+    if (["masuk", "saldo_awal", "penilaian_awal"].includes(jenisTransaksi) && hargaPerolehan <= 0) {
+        showNotification("Masukkan harga perolehan per satuan lebih dari 0.", "warning");
+        return;
+    }
+
+    if (jenisTransaksi === "keluar" && hargaJual <= 0) {
+        showNotification("Masukkan harga jual per unit lebih dari 0.", "warning");
+        return;
+    }
+
+    if (["masuk", "keluar"].includes(jenisTransaksi) && !metodePembayaran) {
+        showNotification("Pilih metode pembayaran.", "warning");
         return;
     }
 
@@ -2293,9 +3002,14 @@ async function saveTransaksi(event) {
         tanggal: tanggal,
         jenis_transaksi: jenisTransaksi.toUpperCase(),
         keterangan: keterangan || null,
-        jumlah: jumlah,
+        jumlah: jumlahTransaksi,
         id_bahan: tipeItem === "bahan" ? idItem : null,
-        id_barang: tipeItem === "barang" ? idItem : null
+        id_barang: tipeItem === "barang" ? idItem : null,
+        harga_perolehan_satuan: ["masuk", "saldo_awal", "penilaian_awal"].includes(jenisTransaksi)
+            ? hargaPerolehan
+            : null,
+        harga_jual_satuan: jenisTransaksi === "keluar" ? hargaJual : null,
+        metode_pembayaran: metodePembayaran || null
     };
 
     try {
@@ -2308,31 +3022,40 @@ async function saveTransaksi(event) {
             throw error;
         }
 
-        showNotification(
-            "Transaksi berhasil disimpan.",
-            "success"
-        );
+        const messages = {
+            masuk: "Pembelian bahan tercatat; stok dan jurnal pembelian diperbarui.",
+            bahan_keluar: "Pemakaian bahan tercatat dan nilai persediaan diperbarui.",
+            produksi: "Produksi tercatat; bahan dikurangi, biaya dipindahkan ke barang jadi, dan jurnal dibuat.",
+            keluar: "Penjualan tercatat; pembayaran, pendapatan, HPP, stok, dan jurnal diperbarui.",
+            saldo_awal: "Saldo awal ditambahkan dan jurnal modal awal dibuat.",
+            penilaian_awal: "Nilai stok lama disesuaikan dan jurnal saldo awal dibuat."
+        };
+        showNotification(messages[jenisTransaksi], "success");
 
         document.getElementById("transaksiForm").reset();
 
         const tanggalInput = document.getElementById("tanggalTransaksi");
         tanggalInput.value = tanggal;
         createTransactionItemSelect();
+        syncTransactionFields();
+        document.getElementById("nilaiTransaksiPreview").textContent = "";
 
         await loadTransaksi();
         await loadBahanBaku();
         await loadBarangJadi();
+        await loadResep();
         await loadPersediaan();
         await loadDashboard();
+        if (document.getElementById("laporan").classList.contains("active-page")) {
+            await loadAccountingReport();
+        }
 
     } catch (error) {
 
         console.error(error);
 
-        showNotification(
-            error.message || "Gagal menyimpan transaksi. Periksa kembali stok yang tersedia.",
-            "error"
-        );
+        const message = [error.message, error.details, error.hint].filter(Boolean).join(" ");
+        showNotification(message || "Gagal menyimpan transaksi. Periksa nilai transaksi dan ketersediaan stok.", "error");
 
     }
 
@@ -2353,6 +3076,10 @@ async function saveTransaksi(event) {
 let autoRefreshTimer = null;
 
 async function autoRefreshActivePage() {
+
+    if (!activeUserId) {
+        return;
+    }
 
     // Jangan refresh kalau tab browser tidak aktif
     // (hemat kuota & resource)
@@ -2409,6 +3136,10 @@ async function autoRefreshActivePage() {
 
             case "persediaan":
                 await loadPersediaan();
+                break;
+
+            case "laporan":
+                await loadAccountingReport();
                 break;
 
             default:

@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>Sistem Persediaan Toko Butik</title>
+    <title>Sistem Persediaan Fadilah Boutique</title>
 
     <!-- CSS -->
     <link rel="stylesheet" href="./css/style.css">
@@ -13,70 +13,100 @@
 
 <body>
 
-    <!-- ==========================================
-         HEADER
-    =========================================== -->
+    <section id="authScreen" class="auth-screen">
+        <form id="loginForm" class="auth-card">
+            <div class="auth-brand">
+                <span class="boutique-mark" aria-hidden="true">
+                    <svg viewBox="0 0 48 48" focusable="false">
+                        <path d="M24 8c-3.1 0-5.5 2.4-5.5 5.4 0 2.6 1.8 4.7 4.2 5.2L9 30.5a3 3 0 0 0 2 5.2h26a3 3 0 0 0 2-5.2L25.3 18.6a5.4 5.4 0 0 0 4.2-5.2" />
+                        <path d="M9.5 30.5h29" />
+                    </svg>
+                </span>
+                <span class="auth-brand-name">Fadilah Boutique</span>
+            </div>
+            <p class="auth-eyebrow">FADILAH BOUTIQUE</p>
+            <h1>Selamat Datang di Boutique</h1>
+            <p class="auth-description">Masuk untuk mengelola persediaan bahan baku dan koleksi butik.</p>
 
-    <header class="header">
-        <div class="header-container">
-
-            <div>
-                <h1>Sistem Persediaan Toko Butik</h1>
-                <p>Pengelolaan Bahan Baku dan Barang Jadi</p>
+            <div class="auth-field">
+                <label for="loginEmail">Email</label>
+                <span class="auth-input-wrap">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"></rect><path d="m4 7 8 6 8-6"></path></svg>
+                    <input type="email" id="loginEmail" autocomplete="username" placeholder="nama@email.com" required>
+                </span>
             </div>
 
-        </div>
-    </header>
+            <div class="auth-field">
+                <label for="loginPassword">Kata sandi</label>
+                <span class="auth-input-wrap">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"></rect><path d="M8 10V7a4 4 0 1 1 8 0v3"></path></svg>
+                    <input type="password" id="loginPassword" autocomplete="current-password" placeholder="Masukkan kata sandi" required>
+                    <button class="password-toggle" id="togglePassword" type="button" aria-label="Tampilkan kata sandi" aria-pressed="false">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 12s3.4-6 9.5-6 9.5 6 9.5 6-3.4 6-9.5 6-9.5-6-9.5-6Z"></path><circle cx="12" cy="12" r="2.5"></circle></svg>
+                    </button>
+                </span>
+            </div>
 
+            <p id="authMessage" class="auth-message" role="status" aria-live="polite"></p>
 
-    <!-- ==========================================
-         NAVBAR
-    =========================================== -->
-
-    <nav class="navbar">
-
-        <div class="navbar-container">
-
-            <button
-                class="nav-button active"
-                onclick="showPage('dashboard')">
-                Dashboard
+            <button id="loginButton" type="submit" class="btn btn-primary auth-submit">
+                <span>Masuk ke Aplikasi</span>
+                <span aria-hidden="true">→</span>
             </button>
+            <p class="auth-security"><span aria-hidden="true">◆</span> Login diamankan dengan Supabase Auth</p>
+            <p class="auth-footnote">Gunakan akun butik yang telah didaftarkan oleh pengelola.</p>
+        </form>
+    </section>
 
-            <button
-                class="nav-button"
-                onclick="showPage('bahan-baku')">
-                Bahan Baku
-            </button>
+    <div id="appShell" class="app-shell" hidden>
+        <aside class="sidebar">
+            <a class="sidebar-brand" href="#" onclick="showPage('dashboard'); return false;">
+                <span class="sidebar-mark" aria-hidden="true">
+                    <svg viewBox="0 0 48 48" focusable="false">
+                        <path d="M24 8c-3.1 0-5.5 2.4-5.5 5.4 0 2.6 1.8 4.7 4.2 5.2L9 30.5a3 3 0 0 0 2 5.2h26a3 3 0 0 0 2-5.2L25.3 18.6a5.4 5.4 0 0 0 4.2-5.2" />
+                        <path d="M9.5 30.5h29" />
+                    </svg>
+                </span>
+                <span><strong>Fadilah Boutique</strong><small>Sistem Persediaan</small></span>
+            </a>
+            <nav class="sidebar-nav" aria-label="Menu utama">
+                <p class="sidebar-label">Menu utama</p>
+                <button class="nav-button active" data-page="dashboard" data-nav-id="dashboard" onclick="showPage('dashboard')" aria-label="Dashboard" title="Dashboard"><span class="sidebar-icon sidebar-icon-dashboard" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="M4 6h16M4 12h16M4 18h16"/></svg></span>Dashboard</button>
 
-            <button
-                class="nav-button"
-                onclick="showPage('barang-jadi')">
-                Barang Jadi
-            </button>
+                <p class="sidebar-label">Master data</p>
+                <button class="nav-button" data-page="bahan-baku" data-nav-id="bahan-baku" onclick="showPage('bahan-baku')" aria-label="Bahan Baku" title="Bahan Baku"><span class="sidebar-icon sidebar-icon-material" aria-hidden="true"><svg viewBox="0 0 48 48" focusable="false"><path d="m7 31 7-15h8l-7 15m-7 0h11a3.5 3.5 0 0 1 0 7H9a3.5 3.5 0 0 1 0-7Zm11 0h8l3 7H20"/><circle cx="25" cy="13" r="4.5"/><circle cx="23.5" cy="12" r=".8"/><circle cx="26.5" cy="12" r=".8"/><circle cx="23.5" cy="14.5" r=".8"/><circle cx="26.5" cy="14.5" r=".8"/><path d="m32 11 4 1-1 10-4-1 1-10Zm-1 2 4 1m-4 2 4 1m-4 2 4 1M34 26l-5 10m7-9-4 10"/><circle cx="29" cy="37" r="2"/><circle cx="33.5" cy="37" r="2"/></svg></span>Bahan Baku</button>
+                <button class="nav-button" data-page="barang-jadi" data-nav-id="barang-jadi" onclick="showPage('barang-jadi')" aria-label="Barang Jadi" title="Barang Jadi"><span class="sidebar-icon sidebar-icon-product" aria-hidden="true"><svg viewBox="0 0 48 48" focusable="false"><path class="product-hanger" d="M24 5.5a3 3 0 0 0-3 3c0 1.1.6 2 1.5 2.5v3L8.7 20.5a1.5 1.5 0 0 0 1.4 2.7L24 16.5l13.9 6.7a1.5 1.5 0 1 0 1.3-2.7L25.5 14v-3c.9-.5 1.5-1.4 1.5-2.5a3 3 0 0 0-3-3Z"/><path class="product-dress" fill-rule="evenodd" d="M14 16c2.3-.8 4.2-.3 6 1.2l4 8 4-8c1.8-1.5 3.7-2 6-1.2l-1.2 10.2c-.4 3-2.3 5.1-4.5 7.3L36 46H12l7.7-12.5c-2.2-2.2-4.1-4.3-4.5-7.3L14 16Zm4.9.4c.8 4.1 2.5 7.4 5.1 9.2 2.6-1.8 4.3-5.1 5.1-9.2-1.6 1.1-3.3 1.7-5.1 1.7s-3.5-.6-5.1-1.7Z"/></svg></span>Barang Jadi</button>
+                <button class="nav-button" data-page="bahan-baku" data-nav-id="bahan-habis-pakai" onclick="openBahanHabisPakai()" aria-label="Bahan Habis Pakai" title="Bahan Habis Pakai"><span class="sidebar-icon sidebar-icon-consumable" aria-hidden="true"><svg viewBox="0 0 48 48" focusable="false"><path d="M11 15c0-3.3 2.7-6 6-6h3c3.3 0 6 2.7 6 6v14c0 3.3-2.7 6-6 6h-3c-3.3 0-6-2.7-6-6V15Z"/><path d="M11 29c0 2.2 1.8 4 4 4h7M29 12l8-4 6 3v9l-8 4-6-3v-9Zm0 0 6 3 8-4m-8 4v9"/><path d="m22 35 4 4 8-10"/><path d="M34 28h7v10h-7zM32 30h11m-11 3h11m-11 3h11"/></svg></span>Bahan Habis Pakai</button>
 
-            <button
-                class="nav-button"
-                onclick="showPage('transaksi')">
-                Transaksi
-            </button>
+                <p class="sidebar-label">Aktivitas</p>
+                <button class="nav-button" data-page="transaksi" data-nav-id="transaksi" onclick="showPage('transaksi')" aria-label="Transaksi" title="Transaksi"><span class="sidebar-icon sidebar-icon-transaction" aria-hidden="true"><svg viewBox="0 0 48 48" focusable="false"><path d="M37 15A16 16 0 0 0 9 13l-3 4"/><path d="m6 10 0 7 7-1M11 33a16 16 0 0 0 28 2l3-4"/><path d="m42 38 0-7-7 1"/><circle cx="21" cy="21" r="5"/><path d="M19 21h4m-2-2v4"/><circle cx="29" cy="27" r="5"/><path d="M27 27h4"/><path d="M25 34h12v10H25zM27 37h8m-8 3h6"/></svg></span>Transaksi</button>
 
-            <button
-                class="nav-button"
-                onclick="showPage('persediaan')">
-                Persediaan
-            </button>
+                <p class="sidebar-label">Data &amp; laporan</p>
+                <button class="nav-button" data-page="persediaan" data-nav-id="persediaan" onclick="showPage('persediaan')" aria-label="Persediaan" title="Persediaan"><span class="sidebar-icon sidebar-icon-inventory" aria-hidden="true"><svg viewBox="0 0 48 48" focusable="false"><path d="m7 19 17-9 17 9-17 10-17-10Z"/><path d="M7 19v17l17 9 17-9V19M24 29v16m-17-26 17 10 17-10"/><path d="m16 18 8-4 8 4-8 5-8-5Zm0 0v5l8 5v-5m8-5v5l-8 5"/><path d="M12 38h7m11-7 6-3v7l-6 3z"/></svg></span>Persediaan</button>
+                <button class="nav-button" data-page="laporan" data-nav-id="laporan" onclick="showPage('laporan')" aria-label="Laporan Akuntansi" title="Laporan Akuntansi"><span class="sidebar-icon sidebar-icon-report" aria-hidden="true"><svg viewBox="0 0 48 48" focusable="false"><path d="M12 5h20l6 6v31H12z"/><path d="M32 5v7h6M18 16h13M18 20h9M17 37h4V30h-4zm7 0h4V26h-4zm7 0h4V22h-4zM16 28l7-5 5 2 8-9"/><path d="m31 16 5 0-1 5"/><path d="M12 24H8m4 8H8"/></svg><span class="report-currency" aria-hidden="true">Rp</span></span>Laporan Akuntansi</button>
+            </nav>
+            <div class="sidebar-account">
+                <span class="account-avatar" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" focusable="false">
+                        <circle cx="12" cy="8" r="3.5" />
+                        <path d="M5 20v-1.5a7 7 0 0 1 14 0V20z" />
+                    </svg>
+                </span>
+                <span class="account-details"><strong>Pemilik Boutique</strong><small id="currentUserEmail"></small></span>
+                <button id="logoutButton" type="button" class="sidebar-logout" aria-label="Keluar dari akun" title="Keluar">↪</button>
+            </div>
+        </aside>
 
-        </div>
+        <div class="app-main">
+            <header class="welcome-hero">
+                <div class="welcome-copy">
+                    <span class="welcome-kicker">RUANG SISTEM BUTIK</span>
+                    <h1 id="currentPageTitle">Selamat Datang di Boutique</h1>
+                    <p id="currentPageDescription">Kelola persediaan bahan baku dan koleksi butik dalam satu tempat.</p>
+                </div>
+            </header>
 
-    </nav>
-
-
-    <!-- ==========================================
-         KONTEN UTAMA
-    =========================================== -->
-
-    <main class="container">
+            <main class="container">
 
 
         <!-- ======================================
@@ -91,9 +121,7 @@
 
                 <div>
                     <h2>Dashboard</h2>
-                    <p>
-                        Ringkasan persediaan bahan baku dan barang jadi.
-                    </p>
+                    <p>Ringkasan stok, komposisi koleksi, dan aktivitas operasional butik.</p>
                 </div>
 
             </div>
@@ -105,8 +133,8 @@
 
                 <div class="dashboard-card">
 
-                    <div class="card-icon">
-                        📦
+                    <div class="card-icon dashboard-card-icon-material" aria-hidden="true">
+                        <svg viewBox="0 0 48 48" focusable="false"><path d="m7 31 7-15h8l-7 15m-7 0h11a3.5 3.5 0 0 1 0 7H9a3.5 3.5 0 0 1 0-7Zm11 0h8l3 7H20"/><circle cx="25" cy="13" r="4.5"/><circle cx="23.5" cy="12" r=".8"/><circle cx="26.5" cy="12" r=".8"/><circle cx="23.5" cy="14.5" r=".8"/><circle cx="26.5" cy="14.5" r=".8"/><path d="m32 11 4 1-1 10-4-1 1-10Zm-1 2 4 1m-4 2 4 1m-4 2 4 1M34 26l-5 10m7-9-4 10"/><circle cx="29" cy="37" r="2"/><circle cx="33.5" cy="37" r="2"/></svg>
                     </div>
 
                     <div>
@@ -118,7 +146,7 @@
                             0
                         </p>
 
-                        <span>Data bahan baku</span>
+                        <span>Jenis bahan aktif</span>
                     </div>
 
                 </div>
@@ -126,8 +154,8 @@
 
                 <div class="dashboard-card">
 
-                    <div class="card-icon">
-                        👗
+                    <div class="card-icon dashboard-card-icon-product" aria-hidden="true">
+                        <svg viewBox="0 0 48 48" focusable="false"><path d="M24 5.5a3 3 0 0 0-3 3c0 1.1.6 2 1.5 2.5v3L8.7 20.5a1.5 1.5 0 0 0 1.4 2.7L24 16.5l13.9 6.7a1.5 1.5 0 1 0 1.3-2.7L25.5 14v-3c.9-.5 1.5-1.4 1.5-2.5a3 3 0 0 0-3-3Z"/><path fill-rule="evenodd" d="M14 16c2.3-.8 4.2-.3 6 1.2l4 8 4-8c1.8-1.5 3.7-2 6-1.2l-1.2 10.2c-.4 3-2.3 5.1-4.5 7.3L36 46H12l7.7-12.5c-2.2-2.2-4.1-4.3-4.5-7.3L14 16Zm4.9.4c.8 4.1 2.5 7.4 5.1 9.2 2.6-1.8 4.3-5.1 5.1-9.2-1.6 1.1-3.3 1.7-5.1 1.7s-3.5-.6-5.1-1.7Z"/></svg>
                     </div>
 
                     <div>
@@ -139,7 +167,7 @@
                             0
                         </p>
 
-                        <span>Data barang jadi</span>
+                        <span>Koleksi aktif</span>
                     </div>
 
                 </div>
@@ -147,8 +175,8 @@
 
                 <div class="dashboard-card">
 
-                    <div class="card-icon">
-                        📥
+                    <div class="card-icon dashboard-card-icon-stock" aria-hidden="true">
+                        <svg viewBox="0 0 48 48" focusable="false"><path d="M11 21h26v19H11zM8 21h32M24 6v13m-7-7 7 7 7-7"/></svg>
                     </div>
 
                     <div>
@@ -160,7 +188,7 @@
                             0
                         </p>
 
-                        <span>Total transaksi masuk</span>
+                        <span>Transaksi masuk bulan ini</span>
                     </div>
 
                 </div>
@@ -168,8 +196,8 @@
 
                 <div class="dashboard-card">
 
-                    <div class="card-icon">
-                        📤
+                    <div class="card-icon dashboard-card-icon-stock" aria-hidden="true">
+                        <svg viewBox="0 0 48 48" focusable="false"><path d="M11 21h26v19H11zM8 21h32M24 19V7m-7 7 7-7 7 7"/></svg>
                     </div>
 
                     <div>
@@ -181,7 +209,7 @@
                             0
                         </p>
 
-                        <span>Total transaksi keluar</span>
+                        <span>Transaksi keluar bulan ini</span>
                     </div>
 
                 </div>
@@ -189,23 +217,70 @@
             </div>
 
 
-            <!-- INFORMASI -->
+            <div class="dashboard-insights">
+                <section class="content-card dashboard-panel">
+                    <div class="dashboard-panel-heading">
+                        <div>
+                            <h3>Stok Bahan Baku</h3>
+                            <p>Persediaan bahan aktif, masing-masing sesuai satuannya.</p>
+                        </div>
+                    </div>
+                    <div id="dashboardStockChart" class="dashboard-stock-chart" aria-live="polite"></div>
+                </section>
 
-            <div class="content-card">
+                <section class="content-card dashboard-panel">
+                    <div class="dashboard-panel-heading">
+                        <div>
+                            <h3>Komposisi Koleksi</h3>
+                            <p>Jumlah barang jadi aktif berdasarkan kategori.</p>
+                        </div>
+                    </div>
+                    <div id="dashboardCategoryChart" class="dashboard-category-chart" aria-live="polite"></div>
+                </section>
 
-                <h3>Informasi Sistem</h3>
+                <section class="content-card dashboard-panel">
+                    <div class="dashboard-panel-heading">
+                        <div>
+                            <h3>Peringatan Stok Rendah</h3>
+                            <p>Bahan yang stoknya sudah menyentuh batas minimum.</p>
+                        </div>
+                    </div>
+                    <div id="dashboardLowStock" class="dashboard-list" aria-live="polite"></div>
+                </section>
 
-                <p>
-                    Sistem ini digunakan untuk mengelola persediaan
-                    bahan baku dan barang jadi pada toko butik.
-                </p>
-
-                <p>
-                    Gunakan menu di atas untuk mengelola data
-                    bahan baku, barang jadi, transaksi, dan persediaan.
-                </p>
-
+                <section class="content-card dashboard-panel">
+                    <div class="dashboard-panel-heading">
+                        <div>
+                            <h3>Produk Terlaris</h3>
+                            <p>Penjualan barang jadi bulan ini.</p>
+                        </div>
+                    </div>
+                    <div id="dashboardBestSellers" class="dashboard-list" aria-live="polite"></div>
+                </section>
             </div>
+
+            <section class="content-card dashboard-panel dashboard-activity-panel">
+                <div class="dashboard-panel-heading">
+                    <div>
+                        <h3>Aktivitas 7 Hari Terakhir</h3>
+                        <p>Pergerakan bahan dan barang jadi terbaru.</p>
+                    </div>
+                </div>
+                <div class="dashboard-table-wrap">
+                    <table class="dashboard-activity-table">
+                        <thead>
+                            <tr>
+                                <th>Tanggal</th>
+                                <th>Jenis</th>
+                                <th>Nama Item</th>
+                                <th>Jumlah</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="dashboardRecentActivity"></tbody>
+                    </table>
+                </div>
+            </section>
 
         </section>
 
@@ -347,6 +422,12 @@
 
                         </div>
 
+                        <div class="form-group">
+                            <label for="hargaPokokBahan">Harga Perolehan per Satuan (Rp)</label>
+                            <input type="number" id="hargaPokokBahan" min="0" step="1" value="0" required>
+                            <small class="form-hint" id="hargaPokokBahanHint">Isi jika memasukkan saldo awal.</small>
+                        </div>
+
                     </div>
 
 
@@ -409,6 +490,8 @@
 
                                 <th>Stok</th>
 
+                                <th>HPP Rata-rata</th>
+
                                 <th>Aksi</th>
 
                             </tr>
@@ -421,7 +504,7 @@
                             <tr>
 
                                 <td
-                                    colspan="7"
+                                    colspan="8"
                                     class="empty-data">
 
                                     Belum ada data bahan baku.
@@ -438,7 +521,7 @@
 
             </div>
 
-            <div class="content-card recipe-card">
+            <div id="bahan-habis-pakai" class="content-card recipe-card">
 
                 <div class="table-header">
                     <h3>Bahan Habis Pakai</h3>
@@ -637,7 +720,6 @@
 
                         </div>
 
-
                         <div class="form-group">
 
                             <label for="hargaBarang">
@@ -723,6 +805,9 @@
 
                                 <th>Harga</th>
 
+                                <th>HPP Rata-rata Stok/Unit</th>
+                                <th>HPP Resep/Unit</th>
+
                                 <th>Aksi</th>
 
                             </tr>
@@ -735,7 +820,7 @@
                             <tr>
 
                                 <td
-                                    colspan="9"
+                                    colspan="11"
                                     class="empty-data">
 
                                     Belum ada data barang jadi.
@@ -817,7 +902,7 @@
                                 </option>
 
                                 <option value="masuk">
-                                    Stok Masuk
+                                    Pembelian Bahan Baku
                                 </option>
 
                                 <option value="bahan_keluar">
@@ -825,11 +910,19 @@
                                 </option>
 
                                 <option value="keluar">
-                                    Stok Keluar
+                                    Penjualan (langsung dibayar)
                                 </option>
 
                                 <option value="produksi">
                                     Produksi Barang Jadi
+                                </option>
+
+                                <option value="saldo_awal">
+                                    Saldo Awal Persediaan Baru
+                                </option>
+
+                                <option value="penilaian_awal">
+                                    Penilaian Stok Lama
                                 </option>
 
                             </select>
@@ -879,19 +972,33 @@
 
                         </div>
 
-
-                        <div class="form-group full-width">
-
-                            <label for="keteranganTransaksi">
-                                Keterangan
-                            </label>
-
-                            <textarea
-                                id="keteranganTransaksi"
-                                rows="3"
-                                placeholder="Keterangan transaksi..."></textarea>
-
+                        <div class="form-group conditional-field" id="hargaPerolehanWrapper" hidden>
+                            <label for="hargaPerolehanTransaksi">Harga Perolehan per Satuan (Rp)</label>
+                            <input type="number" id="hargaPerolehanTransaksi" min="1" step="1">
                         </div>
+
+                        <div class="form-group conditional-field" id="hargaJualWrapper" hidden>
+                            <label for="hargaJualTransaksi">Harga Jual per Unit (Rp)</label>
+                            <input type="number" id="hargaJualTransaksi" min="1" step="1">
+                        </div>
+
+                        <div class="form-group conditional-field" id="metodePembayaranWrapper" hidden>
+                            <label for="metodePembayaranTransaksi">Metode Pembayaran</label>
+                            <select id="metodePembayaranTransaksi">
+                                <option value="">-- Pilih Metode --</option>
+                                <option value="TUNAI">Tunai</option>
+                                <option value="TRANSFER">Transfer</option>
+                                <option value="QRIS">QRIS</option>
+                                <option value="DEBIT">Kartu debit</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group full-width transaction-preview" id="nilaiTransaksiPreview" aria-live="polite">
+                            Pilih jenis transaksi terlebih dahulu. Kolom harga/nilai dan rincian HPP akan muncul sesuai transaksi yang dipilih.
+                        </div>
+                        <p class="form-hint full-width" id="keteranganTransaksiHint">
+                            Keterangan transaksi dibuat otomatis dari jenis transaksi, barang, jumlah, dan metode pembayaran.
+                        </p>
 
                     </div>
 
@@ -937,6 +1044,12 @@
 
                                 <th>Jumlah</th>
 
+                                <th>Nominal Kas (Rp)</th>
+                                <th>HPP / Nilai Persediaan (Rp)</th>
+                                <th>Laba Kotor (Rp)</th>
+
+                                <th>Pembayaran</th>
+
                                 <th>Keterangan</th>
 
                             </tr>
@@ -949,7 +1062,7 @@
                             <tr>
 
                                 <td
-                                    colspan="6"
+                                    colspan="10"
                                     class="empty-data">
 
                                     Belum ada transaksi.
@@ -968,6 +1081,81 @@
 
         </section>
 
+        <section id="laporan" class="page">
+            <div class="page-header">
+                <div>
+                    <h2>Laporan Akuntansi</h2>
+                    <p>Ringkasan penjualan tunai, HPP, laba kotor, dan nilai persediaan.</p>
+                </div>
+            </div>
+
+            <div class="content-card">
+                <h3>Periode Laporan</h3>
+                <form id="laporanForm" class="report-filter">
+                    <div class="form-group">
+                        <label for="laporanDari">Dari tanggal</label>
+                        <input type="date" id="laporanDari" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="laporanSampai">Sampai tanggal</label>
+                        <input type="date" id="laporanSampai" required>
+                    </div>
+                    <button class="btn btn-primary" type="submit">Tampilkan Laporan</button>
+                </form>
+            </div>
+
+            <div id="laporanPeringatan" class="report-warning" role="status" hidden></div>
+
+            <div class="report-grid">
+                <article class="report-card">
+                    <span>Penjualan (Bayar Langsung)</span>
+                    <strong id="laporanPenjualan">Rp0</strong>
+                </article>
+                <article class="report-card">
+                    <span>Harga Pokok Penjualan</span>
+                    <strong id="laporanHpp">Rp0</strong>
+                </article>
+                <article class="report-card report-highlight">
+                    <span>Laba Kotor</span>
+                    <strong id="laporanLabaKotor">Rp0</strong>
+                </article>
+                <article class="report-card">
+                    <span>Pembelian Bahan</span>
+                    <strong id="laporanPembelian">Rp0</strong>
+                </article>
+                <article class="report-card">
+                    <span>Nilai Persediaan Saat Ini</span>
+                    <strong id="laporanNilaiPersediaan">Rp0</strong>
+                </article>
+            </div>
+
+            <div class="content-card">
+                <h3>Jurnal Umum</h3>
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Tanggal</th>
+                                <th>Akun</th>
+                                <th>Keterangan</th>
+                                <th>Debit</th>
+                                <th>Kredit</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabelJurnal">
+                            <tr><td colspan="5" class="empty-data">Pilih periode untuk melihat jurnal.</td></tr>
+                        </tbody>
+                        <tfoot>
+                            <tr>
+                                <th colspan="3">Total</th>
+                                <th id="totalDebit">Rp0</th>
+                                <th id="totalKredit">Rp0</th>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </section>
 
 
         <!-- ======================================
@@ -1028,6 +1216,8 @@
 
                                 <th>Satuan</th>
 
+                                <th>Nilai Persediaan</th>
+
                             </tr>
 
                         </thead>
@@ -1038,7 +1228,7 @@
                             <tr>
 
                                 <td
-                                    colspan="5"
+                                    colspan="6"
                                     class="empty-data">
 
                                     Belum ada data persediaan.
@@ -1058,7 +1248,9 @@
         </section>
 
 
-    </main>
+            </main>
+        </div>
+    </div>
 
 
 
