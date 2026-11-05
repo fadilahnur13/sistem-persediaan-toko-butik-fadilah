@@ -2,14 +2,15 @@
 
 ## 1. Gambaran Umum
 
-Basis data ini digunakan untuk mencatat persediaan bahan baku dan barang jadi butik. Skema dibuat untuk PostgreSQL dan digunakan bersama Supabase. Data dibagi menjadi empat tabel utama:
+Basis data ini digunakan untuk mencatat persediaan bahan baku dan barang jadi butik. Skema dibuat untuk PostgreSQL dan digunakan bersama Supabase. Data utama dibagi menjadi lima tabel:
 
 - `bahan_baku`: katalog dan saldo bahan baku.
 - `barang_jadi`: katalog dan saldo produk butik.
 - `detail_produksi`: resep atau komposisi bahan untuk menghasilkan barang jadi.
 - `transaksi`: riwayat bahan masuk/keluar dan barang yang diproduksi/dijual.
+- `jurnal_umum`: baris debit/kredit yang dibuat otomatis untuk setiap transaksi persediaan dan penjualan.
 
-Perubahan saldo akibat transaksi ditangani oleh trigger database. Dengan demikian, aplikasi mencatat pergerakan melalui `transaksi`, sedangkan database menerapkan perubahan stoknya.
+Perubahan saldo dan harga pokok rata-rata tertimbang ditangani oleh trigger database. Aplikasi mencatat kejadian melalui `transaksi`; database memperbarui stok, nilai persediaan, dan jurnal secara atomik.
 
 ## 2. Diagram ERD
 
@@ -19,6 +20,7 @@ erDiagram
     BARANG_JADI ||--o{ DETAIL_PRODUKSI : "memiliki komposisi"
     BAHAN_BAKU ||--o{ TRANSAKSI : "transaksi bahan"
     BARANG_JADI ||--o{ TRANSAKSI : "transaksi barang"
+    TRANSAKSI ||--o{ JURNAL_UMUM : "membentuk jurnal"
 
     BAHAN_BAKU {
         BIGINT id_bahan PK
@@ -63,6 +65,15 @@ erDiagram
         NUMERIC jumlah
         TIMESTAMPTZ created_at
     }
+
+    JURNAL_UMUM {
+        BIGINT id_jurnal PK
+        BIGINT id_transaksi FK
+        DATE tanggal
+        VARCHAR akun
+        NUMERIC debit
+        NUMERIC kredit
+    }
 ```
 
 ### Cara membaca relasi
@@ -86,9 +97,10 @@ Menyimpan identitas, satuan, dan saldo bahan yang digunakan untuk produksi.
 | `kode_bahan` | `VARCHAR(20)` | Kode bahan yang wajib diisi dan unik. |
 | `nama_bahan` | `VARCHAR(100)` | Nama bahan, wajib diisi. |
 | `jenis_bahan` | `VARCHAR(50)` | Kategori atau jenis bahan; boleh kosong. |
-| `satuan` | `VARCHAR(20)` | Satuan stok, wajib diisi, misalnya meter, roll, atau pcs. |
+| `satuan` | `VARCHAR(20)` | Satuan dasar stok, wajib diisi, misalnya meter atau pcs. Bahan yang dibeli per gulung tetapi dipakai per meter sebaiknya dicatat dalam meter setelah mengonversi isi gulung. |
 | `stok` | `NUMERIC(12,2)` | Saldo saat ini, default `0`, tidak boleh negatif. Mendukung pecahan. |
 | `stok_minimum` | `NUMERIC(12,2)` | Ambang stok minimum, default `0`, tidak boleh negatif. |
+| `harga_pokok_rata_rata` | `NUMERIC(15,4)` | Harga perolehan rata-rata bergerak per satuan bahan, digunakan menghitung biaya bahan dalam resep. |
 | `aktif` | `BOOLEAN` | Status katalog, default `TRUE`. Bahan nonaktif tidak dapat dipakai untuk produksi. |
 | `created_at` | `TIMESTAMPTZ` | Waktu pembuatan, default waktu database saat ini. |
 
@@ -106,6 +118,7 @@ Menyimpan identitas produk, atribut penjualan, dan saldo barang jadi.
 | `warna` | `VARCHAR(30)` | Warna produk; boleh kosong. |
 | `harga_jual` | `NUMERIC(15,2)` | Harga jual, default `0`, tidak boleh negatif. |
 | `stok` | `INTEGER` | Saldo barang dalam unit utuh, default `0`, tidak boleh negatif. |
+| `harga_pokok_rata_rata` | `NUMERIC(15,4)` | HPP rata-rata bergerak per unit untuk stok barang jadi yang sudah terbentuk. Nilai ini diperbarui ketika produksi, saldo awal, atau penilaian stok dicatat. |
 | `aktif` | `BOOLEAN` | Status katalog, default `TRUE`. |
 | `created_at` | `TIMESTAMPTZ` | Waktu pembuatan, default waktu database saat ini. |
 
@@ -136,6 +149,13 @@ Mencatat pergerakan persediaan. Nilai `jumlah` harus lebih besar dari `0`; arah 
 | `id_bahan` | `BIGINT` | Foreign key opsional ke `bahan_baku`; digunakan untuk `MASUK` dan `BAHAN_KELUAR`. |
 | `id_barang` | `BIGINT` | Foreign key opsional ke `barang_jadi`; digunakan untuk `PRODUKSI` dan `KELUAR`. |
 | `jumlah` | `NUMERIC(12,2)` | Kuantitas positif. Untuk produksi dan barang keluar harus bernilai bulat. |
+| `harga_perolehan_satuan` | `NUMERIC(15,2)` | Harga beli per satuan, atau biaya per unit untuk saldo awal/penilaian stok. |
+| `harga_jual_satuan` | `NUMERIC(15,2)` | Harga jual per unit untuk transaksi penjualan langsung. |
+| `nilai_bahan` | `NUMERIC(15,2)` | Nilai bahan baku yang dikonsumsi untuk produksi. |
+| `nilai_persediaan` | `NUMERIC(15,2)` | Nilai biaya stok atau barang jadi yang bergerak pada transaksi. |
+| `nilai_penjualan` | `NUMERIC(15,2)` | Total penerimaan penjualan tunai/non-tunai. |
+| `biaya_produksi` | `NUMERIC(15,2)` | Kolom kompatibilitas database lama; aplikasi butik tidak mengisi biaya tambahan produksi. |
+| `metode_pembayaran` | `VARCHAR(20)` | Metode pembayaran langsung: tunai, transfer, QRIS, atau debit. |
 | `created_at` | `TIMESTAMPTZ` | Waktu pencatatan, default waktu database saat ini. |
 
 Foreign key transaksi menggunakan `ON DELETE RESTRICT`, sehingga bahan atau barang yang sudah memiliki riwayat transaksi tidak dapat dihapus.
@@ -144,18 +164,45 @@ Foreign key transaksi menggunakan `ON DELETE RESTRICT`, sehingga bahan atau bara
 
 | Jenis | Target wajib | Dampak stok |
 |---|---|---|
-| `MASUK` | `id_bahan` | Menambah stok bahan baku sebesar `jumlah`. |
-| `BAHAN_KELUAR` | `id_bahan` | Mengurangi stok bahan baku sebesar `jumlah`, jika stok mencukupi. Dipakai untuk pemakaian bahan di luar transaksi produksi. |
-| `PRODUKSI` | `id_barang` | Mengurangi setiap bahan pada resep sesuai kuantitas resep dikali jumlah produksi, lalu menambah stok barang jadi. |
-| `KELUAR` | `id_barang` | Mengurangi stok barang jadi sebesar `jumlah`, jika stok mencukupi; umumnya untuk barang terjual/keluar. |
+| `SALDO_AWAL` | Salah satu dari `id_bahan` / `id_barang` | Menambah kuantitas saldo awal dan mencatat debit Persediaan, kredit Modal Pemilik. |
+| `PENILAIAN_AWAL` | Salah satu dari `id_bahan` / `id_barang` | Menetapkan harga pokok unit untuk stok lama tanpa mengubah kuantitas; jumlah wajib sama dengan stok aktual. |
+| `MASUK` | `id_bahan` | Pembelian bahan tunai/non-tunai: menambah kuantitas dan nilai bahan dengan harga perolehan. |
+| `BAHAN_KELUAR` | `id_bahan` | Mengurangi bahan untuk pemakaian di luar produksi dan mencatat beban bahan. |
+| `PRODUKSI` | `id_barang` | Mengurangi bahan sesuai resep dan menambah barang jadi sebesar nilai bahan dalam resep. |
+| `KELUAR` | `id_barang` | Penjualan langsung dibayar: mengurangi stok, mencatat kas/bank dan pendapatan serta HPP. |
+
+## 5. Alur Akuntansi dan Metode Penilaian
+
+Alur operasional yang saling terhubung:
+
+1. Daftarkan bahan baku dan barang jadi, lalu tentukan bahan serta jumlah pemakaian per unit pada menu **Bahan Habis Pakai**. HPP resep per unit dihitung otomatis dan tampil di daftar barang jadi.
+2. Masukkan saldo awal yang sudah ada beserta harga perolehan. Untuk data stok lama yang sudah tersimpan tanpa nilai, catat `PENILAIAN_AWAL` satu kali berdasarkan jumlah stok saat ini dan biaya perolehan yang dapat didukung dokumen.
+3. Catat pembelian bahan pada `MASUK`, termasuk harga per satuan dan metode pembayaran (`TUNAI`, `TRANSFER`, `QRIS`, atau `DEBIT`).
+4. Catat `PRODUKSI`: bahan berkurang sesuai resep dan nilai bahan tersebut menjadi harga pokok barang jadi. Upah jahit tidak dicatat terpisah di transaksi produksi; harga jual barang jadi ditetapkan dengan mempertimbangkan biaya butik.
+5. Catat `KELUAR` untuk penjualan yang dibayar langsung. Sistem mencatat penerimaan kas/bank, pendapatan penjualan, HPP, serta pengurangan persediaan.
+6. Pilih menu **Laporan Akuntansi** untuk melihat penjualan, HPP, laba kotor, pembelian, nilai persediaan saat ini, serta jurnal umum.
+
+Persediaan memakai metode **rata-rata tertimbang bergerak**. Pembelian mencampur harga perolehan baru dengan nilai stok lama; produksi memindahkan nilai bahan menjadi barang jadi. Harga jual tidak dipakai untuk menilai persediaan.
+
+HPP barang jadi tidak dimasukkan sebagai transaksi HPP terpisah. Sistem menghitung HPP per unit dari jumlah bahan pada resep dikalikan harga pokok rata-rata bahan. Produk baru disimpan tanpa stok, lalu resep ditambahkan melalui menu **Bahan Habis Pakai**; HPP resep otomatis ditampilkan di daftar barang jadi. Upah jahit tidak dicatat terpisah dalam aplikasi sesuai kebijakan butik; harga jual barang jadi ditetapkan oleh butik dengan mempertimbangkan biaya tersebut. Saat transaksi `PRODUKSI` disimpan, nilai bahan dalam resep dipindahkan ke persediaan barang jadi dan memperbarui HPP rata-rata bergerak. Ketika `KELUAR` dicatat, HPP penjualan dihitung dari HPP rata-rata barang jadi saat itu. Daftar produk membedakan HPP rata-rata stok dari HPP resep. Riwayat yang dibuat sebelum kolom nilai dan jurnal tersedia tidak bisa memperoleh HPP historis secara otomatis dan perlu dinilai berdasarkan dokumen yang tersedia.
+
+Jurnal otomatis:
+
+| Peristiwa | Debit | Kredit |
+|---|---|---|
+| Saldo awal | Persediaan bahan/barang jadi | Modal Pemilik |
+| Pembelian bahan langsung dibayar | Persediaan Bahan Baku | Kas atau Bank |
+| Bahan keluar di luar produksi | Beban Bahan Baku | Persediaan Bahan Baku |
+| Produksi | Persediaan Barang Jadi | Persediaan Bahan Baku dan Kas/Bank untuk biaya tambahan |
+| Penjualan langsung dibayar | Kas/Bank dan Harga Pokok Penjualan | Penjualan dan Persediaan Barang Jadi |
 
 ### Contoh perhitungan produksi
 
-Jika satu blouse membutuhkan `2` meter kain dan `1` roll benang, transaksi produksi sebanyak `3` blouse akan mengurangi stok kain sebanyak `6` meter dan benang sebanyak `3` roll, kemudian menambah stok blouse sebanyak `3` unit. Transaksi ditolak jika resep belum tersedia, resep memakai bahan nonaktif, atau salah satu stok bahan tidak mencukupi.
+Jika satu blouse membutuhkan `2` meter kain dan `5` meter benang, transaksi produksi sebanyak `3` blouse akan mengurangi stok kain sebanyak `6` meter dan benang sebanyak `15` meter, kemudian menambah stok blouse sebanyak `3` unit. Bila benang dibeli per gulung berisi `100` meter, catat harga per meter dengan membagi harga gulung dengan `100`. Transaksi ditolak jika resep belum tersedia, resep memakai bahan nonaktif, atau salah satu stok bahan tidak mencukupi.
 
-## 5. Otomatisasi dan Aturan Integritas
+## 6. Otomatisasi dan Aturan Integritas
 
-Trigger `trigger_proses_transaksi_stok` berjalan **setelah setiap baris baru** dimasukkan ke `transaksi`. Trigger memanggil fungsi `proses_transaksi_stok()` untuk menerapkan perubahan saldo.
+Trigger `trigger_proses_transaksi_stok` berjalan **sebelum penyimpanan transaksi** untuk menghitung biaya dan mengubah stok dalam transaksi database yang sama. Trigger `trigger_catat_jurnal_transaksi` lalu membuat baris debit/kredit. Jika validasi atau jurnal gagal, keseluruhan transaksi dan perubahan stok dibatalkan.
 
 Aturan penting yang diterapkan database:
 
@@ -165,12 +212,15 @@ Aturan penting yang diterapkan database:
 - Kuantitas bahan dalam resep harus positif.
 - Jumlah produksi dan barang jadi keluar harus bilangan bulat, meskipun kolom transaksi bertipe `NUMERIC`.
 - Produksi harus memiliki resep dan seluruh bahan resep harus aktif serta cukup stoknya.
+- Pembelian dan penjualan harus menyertakan harga per satuan serta metode pembayaran langsung.
+- Penjualan/produksi tidak dapat menggunakan saldo lama yang belum dinilai.
+- Jurnal dibuat oleh trigger dan hanya dapat dibaca melalui aplikasi; jangan mengubah jurnal transaksi secara manual.
 - Bila validasi dalam trigger gagal, operasi transaksi dibatalkan oleh database, termasuk perubahan stok yang dilakukan dalam operasi tersebut.
 - Tabel `detail_produksi` menghapus baris resep terkait jika induk barang atau bahan dihapus. Tabel `transaksi` mencegah penghapusan bahan/barang yang sudah dirujuk riwayat.
 
 Trigger saat ini hanya dipasang pada `INSERT`. Mengubah atau menghapus baris transaksi secara langsung tidak menjalankan pembalikan atau penghitungan ulang stok. Koreksi transaksi perlu dilakukan melalui prosedur aplikasi yang menjaga konsistensi, atau mekanisme koreksi database yang dirancang khusus.
 
-## 6. Indeks
+## 7. Indeks
 
 Skema membuat indeks berikut untuk membantu pencarian dan penyaringan:
 
@@ -178,24 +228,27 @@ Skema membuat indeks berikut untuk membantu pencarian dan penyaringan:
 - `idx_barang_nama` pada `barang_jadi.nama_barang`.
 - `idx_transaksi_tanggal` pada `transaksi.tanggal`.
 - `idx_transaksi_jenis` pada `transaksi.jenis_transaksi`.
+- `idx_jurnal_tanggal` dan `idx_jurnal_transaksi` pada `jurnal_umum`.
 
-## 7. Akses dan Keamanan
+## 8. Akses dan Keamanan
 
-Row Level Security (RLS) diaktifkan untuk keempat tabel. Kebijakan yang disediakan adalah kebijakan demo: role `anon` dan `authenticated` mendapat akses baca/tulis luas pada bahan, barang, dan resep; keduanya dapat membaca serta menambahkan transaksi. Kebijakan transaksi tidak menyediakan `UPDATE` atau `DELETE`.
+Row Level Security (RLS) diaktifkan untuk kelima tabel. Hanya role `authenticated` yang diberi akses baca/tulis sesuai kebutuhan; role `anon` tidak memiliki grant atau kebijakan untuk tabel. Semua akun yang berhasil login memiliki akses bersama ke data butik, bukan pemisahan data per pengguna.
 
-Konfigurasi tersebut sesuai untuk demo atau tugas, bukan batas akses produksi. Sebelum dipakai di lingkungan produksi, kebijakan perlu dibatasi berdasarkan identitas dan kewenangan pengguna melalui Supabase Auth serta aturan akses yang sesuai.
+Autentikasi menggunakan Supabase Auth email/kata sandi. Buat akun pemilik dan pegawai secara manual melalui **Supabase Dashboard → Authentication → Users** dan nonaktifkan pendaftaran publik di pengaturan Authentication. Jangan membagikan `service_role` key ke frontend; frontend hanya menggunakan publishable/anon key, yang dibatasi oleh grant dan kebijakan RLS.
 
-## 8. Data Contoh
+Setelah mengubah kebijakan pada database yang sudah ada, jalankan kembali bagian **ROW LEVEL SECURITY** dari `backend/database.sql` atau `backend/database/database.sql` melalui Supabase SQL Editor. Menyembunyikan tampilan aplikasi tanpa menerapkan kebijakan RLS tidak cukup untuk melindungi data.
+
+## 9. Data Contoh
 
 SQL menyertakan contoh bahan: kain katun, kain denim, benang jahit, dan kancing; contoh barang: blouse katun, dress denim, dan rok katun. Tabel resep menghubungkan barang-barang tersebut dengan bahan serta kuantitas pemakaiannya.
 
-Data contoh menggunakan `ON CONFLICT DO NOTHING`, sehingga kode yang sudah ada tidak ditambahkan ulang. Nilai stok pada contoh merupakan nilai awal katalog; perubahan berikutnya terjadi melalui transaksi.
+Data contoh menggunakan `ON CONFLICT DO NOTHING`, sehingga kode yang sudah ada tidak ditambahkan ulang. Data contoh yang telah ada sebelum migrasi dapat memiliki stok tetapi belum memiliki harga pokok atau jurnal; gunakan **Penilaian Stok Lama** dan jangan anggap laporan historis sebelum migrasi lengkap.
 
-## 9. Catatan Cakupan
+## 10. Cakupan dan Batasan
 
-Skema ini mencakup katalog, resep produksi, saldo persediaan, dan pencatatan pergerakan stok. Skema belum memiliki tabel pelanggan, pemasok, pengguna aplikasi khusus, detail penjualan per nota, pembayaran, maupun harga pokok produksi. Karena itu, `KELUAR` hanya mencatat pengurangan stok barang jadi dan belum menjadi sistem penjualan lengkap.
+Skema ini mendukung persediaan bahan/barang jadi, resep produksi, penjualan langsung tunai/non-tunai, HPP rata-rata tertimbang, jurnal umum, dan ringkasan laba kotor. Piutang pelanggan tidak digunakan. Aplikasi belum merupakan sistem akuntansi penuh: belum ada retur, pajak, utang pemasok, biaya operasional umum, buku besar neraca/laba rugi lengkap, atau nomor nota dan rincian multi-item dalam satu nota. Koreksi transaksi yang sudah tersimpan perlu prosedur khusus karena perubahan/penghapusan transaksi tidak membalik stok atau jurnal secara otomatis.
 
-## 10. Berkas Sumber
+## 11. Berkas Sumber
 
 Skema yang didokumentasikan tersedia pada:
 
