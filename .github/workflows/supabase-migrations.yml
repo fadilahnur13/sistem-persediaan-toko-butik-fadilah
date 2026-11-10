@@ -31,4 +31,4 @@ jobs:
           SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
         run: |
           test -n "$SUPABASE_DB_URL" || (echo "Missing SUPABASE_DB_URL repository secret" && exit 1)
-          supabase db push --db-url "$SUPABASE_DB_URL"
+          supabase db push --db-url "$SUPABASE_DB_URL" --yes
