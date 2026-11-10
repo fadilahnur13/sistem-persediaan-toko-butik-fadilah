@@ -1,3 +1,4 @@
+-- Align existing and newly added materials with the requested alert threshold.
 ALTER TABLE public.bahan_baku
     ALTER COLUMN stok_minimum SET DEFAULT 5;
 
