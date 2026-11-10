@@ -412,10 +412,6 @@ function showPage(pageId) {
         panduan: [
             "Panduan Pengguna",
             "Pelajari langkah pencatatan persediaan, transaksi, dan laporan."
-        ],
-        "contoh-transaksi": [
-            "Contoh Transaksi",
-            "Simulasi pembelian, pemakaian bahan, produksi, dan penjualan."
         ]
     };
     const heading = pageHeadings[pageId];
@@ -2618,6 +2614,9 @@ async function loadTransaksi() {
         .select(
             "*, bahan_baku(nama_bahan), barang_jadi(nama_barang)"
         )
+        .order("tanggal", {
+            ascending: false
+        })
         .order("id_transaksi", {
             ascending: false
         });
