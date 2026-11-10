@@ -2167,6 +2167,41 @@ textarea:focus-visible {
     font-size: 13px;
 }
 
+.sample-transactions {
+    display: grid;
+    gap: 20px;
+}
+
+.sample-notice,
+.sample-note {
+    margin: 0;
+    padding: 12px 14px;
+    border-left: 3px solid var(--gold);
+    border-radius: 0 5px 5px 0;
+    background: #f8f5ef;
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+.sample-notice {
+    font-weight: 700;
+}
+
+.sample-month h2 {
+    margin: 0 0 12px;
+    color: var(--primary);
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 22px;
+}
+
+.sample-month table {
+    min-width: 700px;
+}
+
+.sample-month td {
+    line-height: 1.6;
+}
+
 @media (max-width: 760px) {
     .guide-grid {
         grid-template-columns: minmax(0, 1fr);

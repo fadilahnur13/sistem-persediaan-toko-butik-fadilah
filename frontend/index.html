@@ -86,6 +86,7 @@
 
                 <p class="sidebar-label">Bantuan</p>
                 <button class="nav-button" data-page="panduan" data-nav-id="panduan" onclick="showPage('panduan')" aria-label="Panduan Pengguna" title="Panduan Pengguna"><span class="sidebar-icon" aria-hidden="true">?</span>Panduan Pengguna</button>
+                <button class="nav-button" data-page="contoh-transaksi" data-nav-id="contoh-transaksi" onclick="showPage('contoh-transaksi')" aria-label="Contoh Transaksi" title="Contoh Transaksi"><span class="sidebar-icon" aria-hidden="true">i</span>Contoh Transaksi</button>
             </nav>
             <div class="sidebar-account">
                 <span class="account-avatar" aria-hidden="true">
@@ -1083,6 +1084,98 @@
                     <li>Jangan mengubah stok langsung untuk menggantikan transaksi. Gunakan menu Transaksi agar perubahan stok dan pencatatan akuntansi tetap terhubung.</li>
                     <li>Jika terjadi kesalahan koneksi atau penyimpanan, periksa pesan notifikasi sebelum mencoba kembali agar transaksi tidak tercatat dua kali.</li>
                 </ul>
+            </div>
+        </section>
+
+        <section id="contoh-transaksi" class="page">
+            <div class="content-card sample-transactions">
+                <p class="sample-notice">Data simulasi untuk referensi. Contoh ini tidak disimpan ke stok maupun laporan.</p>
+
+                <section class="sample-month" aria-labelledby="sampleSeptember">
+                    <h2 id="sampleSeptember">September 2026</h2>
+                    <div class="table-responsive">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Tanggal</th>
+                                    <th>Aktivitas</th>
+                                    <th>Contoh pencatatan</th>
+                                    <th>Dampak stok</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>2 Sep</td>
+                                    <td>Pembelian bahan baku</td>
+                                    <td>Kain katun 10 meter × Rp35.000 = Rp350.000; benang jahit 1 roll × Rp20.000 = Rp20.000</td>
+                                    <td>Kain dan benang bertambah sesuai jumlah pembelian</td>
+                                </tr>
+                                <tr>
+                                    <td>2 Sep</td>
+                                    <td>Komposisi bahan habis pakai</td>
+                                    <td>Untuk 1 blouse: 1,5 meter kain katun + 0,1 roll benang</td>
+                                    <td>Disimpan sebagai resep; stok belum berubah</td>
+                                </tr>
+                                <tr>
+                                    <td>4 Sep</td>
+                                    <td>Produksi atasan</td>
+                                    <td>2 blouse; resep per blouse: 1,5 meter kain katun dan 0,1 roll benang</td>
+                                    <td>Bahan berkurang otomatis; blouse bertambah 2 pcs</td>
+                                </tr>
+                                <tr>
+                                    <td>6 Sep</td>
+                                    <td>Penjualan barang jadi</td>
+                                    <td>1 blouse × Rp150.000 = Rp150.000</td>
+                                    <td>Stok blouse berkurang 1 pcs</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <section class="sample-month" aria-labelledby="sampleNovember">
+                    <h2 id="sampleNovember">Awal November 2026</h2>
+                    <div class="table-responsive">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Tanggal</th>
+                                    <th>Aktivitas</th>
+                                    <th>Contoh pencatatan</th>
+                                    <th>Dampak stok</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>2 Nov</td>
+                                    <td>Pembelian bahan baku</td>
+                                    <td>Kain denim 8 meter × Rp45.000 = Rp360.000; benang jahit 1 roll × Rp20.000 = Rp20.000</td>
+                                    <td>Kain dan benang bertambah sesuai jumlah pembelian</td>
+                                </tr>
+                                <tr>
+                                    <td>2 Nov</td>
+                                    <td>Komposisi bahan habis pakai</td>
+                                    <td>Untuk 1 rok denim: 1,5 meter kain denim + 0,1 roll benang</td>
+                                    <td>Disimpan sebagai resep; stok belum berubah</td>
+                                </tr>
+                                <tr>
+                                    <td>4 Nov</td>
+                                    <td>Produksi bawahan</td>
+                                    <td>2 rok denim; resep per rok: 1,5 meter kain denim dan 0,1 roll benang</td>
+                                    <td>Bahan berkurang otomatis; rok denim bertambah 2 pcs</td>
+                                </tr>
+                                <tr>
+                                    <td>6 Nov</td>
+                                    <td>Penjualan barang jadi</td>
+                                    <td>1 rok denim × Rp185.000 = Rp185.000</td>
+                                    <td>Stok rok denim berkurang 1 pcs</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <p class="sample-note">Bahan yang digunakan saat produksi dicatat sekali di menu Bahan Habis Pakai. Saat transaksi Produksi disimpan, sistem otomatis mengurangi bahan sesuai resep dan menambah stok barang jadi. Jangan catat pemakaian bahan yang sama lagi sebagai transaksi Bahan Baku Keluar.</p>
             </div>
         </section>
 

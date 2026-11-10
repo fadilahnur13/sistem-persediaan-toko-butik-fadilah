@@ -412,6 +412,10 @@ function showPage(pageId) {
         panduan: [
             "Panduan Pengguna",
             "Pelajari langkah pencatatan persediaan, transaksi, dan laporan."
+        ],
+        "contoh-transaksi": [
+            "Contoh Transaksi",
+            "Simulasi pembelian, pemakaian bahan, produksi, dan penjualan."
         ]
     };
     const heading = pageHeadings[pageId];
