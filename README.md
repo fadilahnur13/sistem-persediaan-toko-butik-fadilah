@@ -9,7 +9,7 @@ Aplikasi web Fadilah Boutique untuk mengelola bahan baku, barang jadi, bahan hab
 - Dashboard persediaan bahan baku, barang jadi, dan transaksi.
 - Pengelolaan bahan baku, barang jadi, dan bahan habis pakai untuk produksi.
 - Pencatatan pembelian, pemakaian bahan, produksi, penjualan, dan saldo awal persediaan.
-- Peringatan stok bahan baku saat persediaan mencapai 1 atau kurang.
+- Peringatan stok bahan baku pada 5 atau kurang dan barang jadi pada 1 atau kurang di dashboard.
 - Pengelompokan koleksi produk menjadi atasan dan bawahan.
 - Pembaruan stok, perhitungan harga pokok, dan jurnal melalui trigger database.
 - Laporan persediaan dan akuntansi dengan ekspor CSV.

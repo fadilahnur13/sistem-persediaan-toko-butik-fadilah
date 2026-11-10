@@ -20,7 +20,7 @@ CREATE TABLE IF NOT EXISTS public.bahan_baku (
 
     stok NUMERIC(12,2) NOT NULL DEFAULT 0,
 
-    stok_minimum NUMERIC(12,2) NOT NULL DEFAULT 1,
+    stok_minimum NUMERIC(12,2) NOT NULL DEFAULT 5,
 
     aktif BOOLEAN NOT NULL DEFAULT TRUE,
 

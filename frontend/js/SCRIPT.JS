@@ -720,21 +720,27 @@ async function loadDashboard() {
 
         renderDashboardStockChart(bahan);
         renderDashboardCategoryChart(barang);
-        renderDashboardLowStock(bahan);
         const lowStock = getLowStockMaterials(bahan);
+        const lowStockProducts = getLowStockProducts(barang);
+        renderDashboardLowStock(lowStock, lowStockProducts, bahan.length + barang.length > 0);
         const summary = document.getElementById("dashboardLowStockSummary");
-        summary.textContent = lowStock.length
-            ? `${lowStock.length} bahan mencapai atau berada di bawah batas minimum stok.`
-            : "Tidak ada bahan baku yang mencapai batas minimum stok.";
-        const signature = lowStock
-            .map((item) => `${item.id_bahan}:${item.stok}:${item.stok_minimum}`)
-            .join("|");
+        summary.textContent = lowStock.length || lowStockProducts.length
+            ? `${lowStock.length} bahan baku dan ${lowStockProducts.length} barang jadi mencapai batas stok.`
+            : "Tidak ada bahan baku atau barang jadi yang mencapai batas stok.";
+        const signature = [
+            ...lowStock.map((item) => `b:${item.id_bahan}:${item.stok}`),
+            ...lowStockProducts.map((item) => `p:${item.id_barang}:${item.stok}`)
+        ].join("|");
         if (signature !== lastLowStockNotificationSignature) {
             lastLowStockNotificationSignature = signature;
-            if (lowStock.length) {
-                const names = lowStock.slice(0, 3).map((item) => item.nama_bahan).join(", ");
-                const remaining = lowStock.length > 3 ? ` dan ${lowStock.length - 3} bahan lainnya` : "";
-                showNotification(`Peringatan stok rendah: ${names}${remaining}.`, "warning");
+            if (lowStock.length || lowStockProducts.length) {
+                const names = [
+                    ...lowStock.map((item) => `${item.nama_bahan} (bahan baku)`),
+                    ...lowStockProducts.map((item) => `${item.nama_barang} (barang jadi)`)
+                ];
+                const visibleNames = names.slice(0, 3).join(", ");
+                const remaining = names.length > 3 ? ` dan ${names.length - 3} item lainnya` : "";
+                showNotification(`Peringatan stok rendah: ${visibleNames}${remaining}.`, "warning");
             }
         }
         renderDashboardBestSellers(transaksiBulan);
@@ -856,7 +862,13 @@ function getClothingGroup(item) {
 }
 
 function getMaterialMinimumStock() {
-    return 1;
+    return 5;
+}
+
+function getLowStockProducts(barang) {
+    return barang
+        .filter((item) => Number(item.stok || 0) <= 1)
+        .sort((a, b) => Number(a.stok || 0) - Number(b.stok || 0));
 }
 
 function getLowStockMaterials(bahan) {
@@ -865,24 +877,37 @@ function getLowStockMaterials(bahan) {
         .sort((a, b) => Number(a.stok || 0) - Number(b.stok || 0));
 }
 
-function renderDashboardLowStock(bahan) {
+function renderDashboardLowStock(lowStock, lowStockProducts, hasInventory) {
     const container = document.getElementById("dashboardLowStock");
     if (!container) return;
 
-    const lowStock = getLowStockMaterials(bahan);
+    const items = [
+        ...lowStock.map((item) => ({
+            name: item.nama_bahan,
+            type: "Bahan baku",
+            stock: item.stok,
+            unit: item.satuan
+        })),
+        ...lowStockProducts.map((item) => ({
+            name: item.nama_barang,
+            type: "Barang jadi",
+            stock: item.stok,
+            unit: "pcs"
+        }))
+    ];
 
-    if (lowStock.length === 0) {
-        container.innerHTML = bahan.length
-            ? '<p class="dashboard-empty">Tidak ada bahan yang menyentuh batas minimum.</p>'
-            : '<p class="dashboard-empty">Belum ada data bahan baku aktif.</p>';
+    if (items.length === 0) {
+        container.innerHTML = hasInventory
+            ? '<p class="dashboard-empty">Tidak ada stok yang mencapai batas minimum.</p>'
+            : '<p class="dashboard-empty">Belum ada persediaan aktif.</p>';
         return;
     }
 
-    container.innerHTML = lowStock.slice(0, 6).map((item) => `
+    container.innerHTML = items.slice(0, 6).map((item) => `
         <div class="dashboard-list-row low-stock-row">
             <span class="dashboard-alert-dot" aria-hidden="true"></span>
-            <span class="dashboard-list-name">${escapeHTML(item.nama_bahan)}</span>
-            <strong>${formatDashboardQuantity(item.stok)} ${escapeHTML(item.satuan || "")}</strong>
+            <span class="dashboard-list-name">${escapeHTML(item.name)} <small>${escapeHTML(item.type)}</small></span>
+            <strong>${formatDashboardQuantity(item.stock)} ${escapeHTML(item.unit || "")}</strong>
         </div>
     `).join("");
 }
@@ -1235,7 +1260,7 @@ async function saveBahanBaku(event) {
                     nama_bahan: nama,
                     jenis_bahan: jenis,
                     satuan: satuan,
-                    stok_minimum: 1
+                    stok_minimum: 5
                 })
                 .eq(
                     "id_bahan",
@@ -1265,7 +1290,7 @@ async function saveBahanBaku(event) {
                     jenis_bahan: jenis,
                     satuan: satuan,
                     stok: 0,
-                    stok_minimum: 1,
+                    stok_minimum: 5,
                     harga_pokok_rata_rata: 0
                 }]);
 
@@ -1624,6 +1649,11 @@ function renderBarangJadi(
 
             stokClass =
                 "stok-habis";
+
+        } else if (Number(item.stok) <= 1) {
+
+            stokClass =
+                "stok-sedikit";
 
         }
 
@@ -2795,7 +2825,7 @@ function renderPersediaan() {
                 nama: item.nama_barang,
                 jenis: "Barang Jadi",
                 stok: item.stok,
-                stokMinimum: 0,
+                stokMinimum: 1,
                 satuan: "pcs",
                 unitCost: item.harga_pokok_rata_rata
             };
