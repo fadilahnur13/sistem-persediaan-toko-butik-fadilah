@@ -24,7 +24,7 @@ BEGIN
     WHERE jenis_transaksi = 'PENILAIAN_AWAL'
       AND id_barang = target_id
       AND jumlah = target_stock
-      AND harga_perolehan_satuan = 54.9800
+      AND harga_perolehan_satuan = 54980.0000
       AND keterangan =
           'Penilaian stok Rok Katun berdasarkan HPP resep aktif dan HPP rata-rata bahan baku saat pencatatan.';
 
@@ -34,7 +34,7 @@ BEGIN
             target_transaction_count;
     END IF;
 
-    IF target_stock <> 8 OR target_unit_cost <> 54.9800 THEN
+    IF target_stock <> 8 OR target_unit_cost <> 54980.0000 THEN
         RAISE EXCEPTION
             'Rok Katun stock or cost differs from the values set by the added valuation; no changes applied.';
     END IF;
