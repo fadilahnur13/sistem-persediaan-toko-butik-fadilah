@@ -829,7 +829,7 @@ function renderDashboardCategoryChart(barang) {
 
     container.innerHTML = `
         <div class="category-chart-layout">
-            <div class="category-donut" role="img" aria-label="Komposisi ${total} barang jadi berdasarkan kelompok pakaian" style="background:conic-gradient(${gradient})">
+            <div class="category-donut" role="img" aria-label="Komposisi koleksi: ${entries.map((item) => `${item.name} ${item.count}`).join(", ")}" style="background:conic-gradient(${gradient})">
                 <span>${total}<small>produk</small></span>
             </div>
             <ul class="category-legend">
