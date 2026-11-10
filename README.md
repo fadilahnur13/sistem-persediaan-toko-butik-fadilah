@@ -11,7 +11,7 @@ Aplikasi web Fadilah Boutique untuk mengelola bahan baku, barang jadi, bahan hab
 - Pencatatan pembelian, pemakaian bahan, produksi, penjualan, dan saldo awal persediaan.
 - Peringatan stok bahan baku pada 5 atau kurang dan barang jadi pada 1 atau kurang di dashboard.
 - Pengelompokan koleksi produk menjadi atasan dan bawahan.
-- Contoh simulasi pembelian, komposisi bahan habis pakai, produksi, dan penjualan untuk September dan awal November.
+- Transaksi simulasi bertanda SIMULASI untuk pembelian, komposisi bahan habis pakai, produksi, dan penjualan pada September serta awal November 2026; data tersebut memengaruhi stok dan laporan.
 - Pembaruan stok, perhitungan harga pokok, dan jurnal melalui trigger database.
 - Laporan persediaan dan akuntansi dengan ekspor CSV.
 - Panduan penggunaan dan validasi input pada formulir.
