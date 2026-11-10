@@ -798,13 +798,16 @@ function renderDashboardCategoryChart(barang) {
         return;
     }
 
-    const categories = new Map();
+    const categories = new Map([
+        ["Atasan", 0],
+        ["Bawahan", 0]
+    ]);
     barang.forEach((item) => {
-        const category = String(item.kategori || "").trim() || "Belum dikategorikan";
+        const category = getClothingGroup(item);
         categories.set(category, (categories.get(category) || 0) + 1);
     });
 
-    const palette = ["#5c1a2e", "#a45b68", "#c49863", "#7d8060", "#796178", "#d7b994"];
+    const palette = ["#5c1a2e", "#c49863", "#a45b68"];
     let offset = 0;
     const entries = [...categories.entries()]
         .sort((a, b) => b[1] - a[1])
@@ -816,11 +819,12 @@ function renderDashboardCategoryChart(barang) {
     const gradient = entries
         .map((item) => `${item.color} ${item.start}% ${item.end}%`)
         .join(", ");
+    const total = entries.reduce((sum, item) => sum + item.count, 0);
 
     container.innerHTML = `
         <div class="category-chart-layout">
-            <div class="category-donut" role="img" aria-label="Komposisi ${barang.length} barang jadi berdasarkan kategori" style="background:conic-gradient(${gradient})">
-                <span>${barang.length}<small>produk</small></span>
+            <div class="category-donut" role="img" aria-label="Komposisi ${total} barang jadi berdasarkan kelompok pakaian" style="background:conic-gradient(${gradient})">
+                <span>${total}<small>produk</small></span>
             </div>
             <ul class="category-legend">
                 ${entries.map((item) => `
@@ -835,9 +839,29 @@ function renderDashboardCategoryChart(barang) {
     `;
 }
 
+function getClothingGroup(item) {
+    const category = String(item.kategori || "").trim().toLocaleLowerCase("id-ID");
+    if (category === "atasan" || category === "bawahan") {
+        return category === "atasan" ? "Atasan" : "Bawahan";
+    }
+
+    const description = `${category} ${String(item.nama_barang || "").toLocaleLowerCase("id-ID")}`;
+    if (/\b(blouse|blus|jaket|jacket|blazer|outer|vest|kemeja|kaos|tunik|sweater|cardigan|hoodie|atasan)\b/.test(description)) {
+        return "Atasan";
+    }
+    if (/\b(rok|celana|jeans|kulot|legging|shorts|skirt|trouser|pants|bawahan)\b/.test(description)) {
+        return "Bawahan";
+    }
+    return "Lainnya";
+}
+
+function getMaterialMinimumStock() {
+    return 1;
+}
+
 function getLowStockMaterials(bahan) {
     return bahan
-        .filter((item) => Number(item.stok_minimum || 0) > 0 && Number(item.stok || 0) <= Number(item.stok_minimum))
+        .filter((item) => Number(item.stok || 0) <= getMaterialMinimumStock())
         .sort((a, b) => Number(a.stok || 0) - Number(b.stok || 0));
 }
 
@@ -1031,8 +1055,7 @@ function renderBahanBaku(
                 "stok-habis";
 
         } else if (
-            Number(item.stok_minimum) > 0 &&
-            Number(item.stok) <= Number(item.stok_minimum)
+            Number(item.stok) <= getMaterialMinimumStock()
         ) {
 
             stokClass =
@@ -1129,7 +1152,6 @@ function openBahanBakuForm() {
 
 
     document.getElementById("kodeBahan").value = generateCatalogCode("BB");
-    document.getElementById("stokMinimumBahan").value = 0;
 
 
     document.querySelector(
@@ -1183,19 +1205,15 @@ async function saveBahanBaku(event) {
             "satuanBahan"
         ).value;
 
-    const stokMinimum = Number(document.getElementById("stokMinimumBahan").value);
-
     if (
         !kode ||
         !nama ||
         !jenis ||
-        !satuan ||
-        !Number.isFinite(stokMinimum) ||
-        stokMinimum < 0
+        !satuan
     ) {
 
         showNotification(
-            "Lengkapi data bahan baku dan pastikan batas minimum stok tidak negatif.",
+            "Lengkapi data bahan baku.",
             "warning"
         );
 
@@ -1217,7 +1235,7 @@ async function saveBahanBaku(event) {
                     nama_bahan: nama,
                     jenis_bahan: jenis,
                     satuan: satuan,
-                    stok_minimum: stokMinimum
+                    stok_minimum: 1
                 })
                 .eq(
                     "id_bahan",
@@ -1247,7 +1265,7 @@ async function saveBahanBaku(event) {
                     jenis_bahan: jenis,
                     satuan: satuan,
                     stok: 0,
-                    stok_minimum: stokMinimum,
+                    stok_minimum: 1,
                     harga_pokok_rata_rata: 0
                 }]);
 
@@ -1360,9 +1378,6 @@ async function editBahanBaku(id) {
         "satuanBahan"
     ).value =
         item.satuan;
-
-    document.getElementById("stokMinimumBahan").value = item.stok_minimum || 0;
-
 
     window.scrollTo({
         top: 0,
@@ -1779,10 +1794,11 @@ async function saveBarangJadi(event) {
         !ukuran ||
         !warna ||
         !Number.isFinite(harga) ||
-        harga < 0
+        harga < 0 ||
+        !["Atasan", "Bawahan"].includes(kategori)
     ) {
         showNotification(
-            "Lengkapi data barang jadi dan pastikan harga tidak negatif.",
+            "Lengkapi data barang jadi, pilih kelompok pakaian, dan pastikan harga tidak negatif.",
             "warning"
         );
         return;
@@ -1876,6 +1892,7 @@ async function editBarangJadi(id) {
         return;
     }
 
+    const kelompokPakaian = getClothingGroup(item);
 
     editBarangJadiId = id;
 
@@ -1905,7 +1922,7 @@ async function editBarangJadi(id) {
     document.getElementById(
         "kategoriBarang"
     ).value =
-        item.kategori || "";
+        kelompokPakaian === "Lainnya" ? "" : kelompokPakaian;
 
 
     document.getElementById(
@@ -2768,7 +2785,7 @@ function renderPersediaan() {
                 nama: item.nama_bahan,
                 jenis: "Bahan Baku",
                 stok: item.stok,
-                stokMinimum: Number(item.stok_minimum || 0),
+                stokMinimum: getMaterialMinimumStock(),
                 satuan: item.satuan,
                 unitCost: item.harga_pokok_rata_rata
             };

@@ -99,7 +99,7 @@ Menyimpan identitas, satuan, dan saldo bahan yang digunakan untuk produksi.
 | `jenis_bahan` | `VARCHAR(50)` | Kategori atau jenis bahan; boleh kosong. |
 | `satuan` | `VARCHAR(20)` | Satuan dasar stok, wajib diisi, misalnya meter atau pcs. Bahan yang dibeli per gulung tetapi dipakai per meter sebaiknya dicatat dalam meter setelah mengonversi isi gulung. |
 | `stok` | `NUMERIC(12,2)` | Saldo saat ini, default `0`, tidak boleh negatif. Mendukung pecahan. |
-| `stok_minimum` | `NUMERIC(12,2)` | Ambang stok minimum, default `0`, tidak boleh negatif. |
+| `stok_minimum` | `NUMERIC(12,2)` | Ambang notifikasi stok, default `1`; aplikasi memakai batas tetap `1`. |
 | `harga_pokok_rata_rata` | `NUMERIC(15,4)` | Harga perolehan rata-rata bergerak per satuan bahan, digunakan menghitung biaya bahan dalam resep. |
 | `aktif` | `BOOLEAN` | Status katalog, default `TRUE`. Bahan nonaktif tidak dapat dipakai untuk produksi. |
 | `created_at` | `TIMESTAMPTZ` | Waktu pembuatan, default waktu database saat ini. |

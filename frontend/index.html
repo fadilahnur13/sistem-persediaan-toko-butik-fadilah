@@ -224,7 +224,7 @@
                     <div class="dashboard-panel-heading">
                         <div>
                             <h3>Komposisi Koleksi</h3>
-                            <p>Jumlah barang jadi aktif berdasarkan kategori.</p>
+                            <p>Jumlah produk atasan dan bawahan.</p>
                         </div>
                     </div>
                     <div id="dashboardCategoryChart" class="dashboard-category-chart" aria-live="polite"></div>
@@ -386,18 +386,6 @@
 
                         </div>
 
-
-                        <div class="form-group">
-                            <label for="stokMinimumBahan">Batas Minimum Stok</label>
-                            <input
-                                type="number"
-                                id="stokMinimumBahan"
-                                min="0"
-                                step="0.01"
-                                value="0"
-                                required>
-                            <small class="form-hint">Peringatan muncul saat stok mencapai atau kurang dari batas ini. Isi 0 untuk menonaktifkannya.</small>
-                        </div>
 
                     </div>
 
@@ -610,12 +598,11 @@
                                 Kategori
                             </label>
 
-                            <input
-                                type="text"
-                                id="kategoriBarang"
-                                placeholder="Contoh: Blouse"
-                                maxlength="50"
-                                required>
+                            <select id="kategoriBarang" required>
+                                <option value="">-- Pilih Kategori --</option>
+                                <option value="Atasan">Atasan</option>
+                                <option value="Bawahan">Bawahan</option>
+                            </select>
 
                         </div>
 
@@ -1065,7 +1052,7 @@
                 </article>
                 <article class="content-card guide-card">
                     <h3>2. Siapkan data persediaan</h3>
-                    <p>Tambahkan bahan baku dan tentukan satuannya. Kode bahan dibuat otomatis. Isi batas minimum untuk mengaktifkan peringatan stok rendah; nilai 0 menonaktifkannya. Catat saldo awal dan perubahan stok lewat menu Transaksi, bukan dari formulir data.</p>
+                    <p>Tambahkan bahan baku dan tentukan satuannya. Kode bahan dibuat otomatis. Peringatan stok rendah muncul saat persediaan mencapai 1 atau kurang. Catat saldo awal dan perubahan stok lewat menu Transaksi, bukan dari formulir data.</p>
                 </article>
                 <article class="content-card guide-card">
                     <h3>3. Siapkan produk dan resep</h3>
