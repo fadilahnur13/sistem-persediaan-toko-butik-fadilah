@@ -76,7 +76,7 @@
                 <p class="sidebar-label">Master data</p>
                 <button class="nav-button" data-page="bahan-baku" data-nav-id="bahan-baku" onclick="showPage('bahan-baku')" aria-label="Bahan Baku" title="Bahan Baku"><span class="sidebar-icon sidebar-icon-material" aria-hidden="true"><svg viewBox="0 0 48 48" focusable="false"><path d="m7 31 7-15h8l-7 15m-7 0h11a3.5 3.5 0 0 1 0 7H9a3.5 3.5 0 0 1 0-7Zm11 0h8l3 7H20"/><circle cx="25" cy="13" r="4.5"/><circle cx="23.5" cy="12" r=".8"/><circle cx="26.5" cy="12" r=".8"/><circle cx="23.5" cy="14.5" r=".8"/><circle cx="26.5" cy="14.5" r=".8"/><path d="m32 11 4 1-1 10-4-1 1-10Zm-1 2 4 1m-4 2 4 1m-4 2 4 1M34 26l-5 10m7-9-4 10"/><circle cx="29" cy="37" r="2"/><circle cx="33.5" cy="37" r="2"/></svg></span>Bahan Baku</button>
                 <button class="nav-button" data-page="barang-jadi" data-nav-id="barang-jadi" onclick="showPage('barang-jadi')" aria-label="Barang Jadi" title="Barang Jadi"><span class="sidebar-icon sidebar-icon-product" aria-hidden="true"><svg viewBox="0 0 48 48" focusable="false"><path class="product-hanger" d="M24 5.5a3 3 0 0 0-3 3c0 1.1.6 2 1.5 2.5v3L8.7 20.5a1.5 1.5 0 0 0 1.4 2.7L24 16.5l13.9 6.7a1.5 1.5 0 1 0 1.3-2.7L25.5 14v-3c.9-.5 1.5-1.4 1.5-2.5a3 3 0 0 0-3-3Z"/><path class="product-dress" fill-rule="evenodd" d="M14 16c2.3-.8 4.2-.3 6 1.2l4 8 4-8c1.8-1.5 3.7-2 6-1.2l-1.2 10.2c-.4 3-2.3 5.1-4.5 7.3L36 46H12l7.7-12.5c-2.2-2.2-4.1-4.3-4.5-7.3L14 16Zm4.9.4c.8 4.1 2.5 7.4 5.1 9.2 2.6-1.8 4.3-5.1 5.1-9.2-1.6 1.1-3.3 1.7-5.1 1.7s-3.5-.6-5.1-1.7Z"/></svg></span>Barang Jadi</button>
-                <button class="nav-button" data-page="bahan-baku" data-nav-id="bahan-habis-pakai" onclick="openBahanHabisPakai()" aria-label="Bahan Habis Pakai" title="Bahan Habis Pakai"><span class="sidebar-icon sidebar-icon-consumable" aria-hidden="true"><svg viewBox="0 0 48 48" focusable="false"><path d="M11 15c0-3.3 2.7-6 6-6h3c3.3 0 6 2.7 6 6v14c0 3.3-2.7 6-6 6h-3c-3.3 0-6-2.7-6-6V15Z"/><path d="M11 29c0 2.2 1.8 4 4 4h7M29 12l8-4 6 3v9l-8 4-6-3v-9Zm0 0 6 3 8-4m-8 4v9"/><path d="m22 35 4 4 8-10"/><path d="M34 28h7v10h-7zM32 30h11m-11 3h11m-11 3h11"/></svg></span>Bahan Habis Pakai</button>
+                <button class="nav-button" data-page="bahan-habis-pakai" data-nav-id="bahan-habis-pakai" onclick="showPage('bahan-habis-pakai')" aria-label="Bahan Habis Pakai" title="Bahan Habis Pakai"><span class="sidebar-icon sidebar-icon-consumable" aria-hidden="true"><svg viewBox="0 0 48 48" focusable="false"><path d="M11 15c0-3.3 2.7-6 6-6h3c3.3 0 6 2.7 6 6v14c0 3.3-2.7 6-6 6h-3c-3.3 0-6-2.7-6-6V15Z"/><path d="M11 29c0 2.2 1.8 4 4 4h7M29 12l8-4 6 3v9l-8 4-6-3v-9Zm0 0 6 3 8-4m-8 4v9"/><path d="m22 35 4 4 8-10"/><path d="M34 28h7v10h-7zM32 30h11m-11 3h11m-11 3h11"/></svg></span>Bahan Habis Pakai</button>
 
                 <p class="sidebar-label">Aktivitas</p>
                 <button class="nav-button" data-page="transaksi" data-nav-id="transaksi" onclick="showPage('transaksi')" aria-label="Transaksi" title="Transaksi"><span class="sidebar-icon sidebar-icon-transaction" aria-hidden="true"><svg viewBox="0 0 48 48" focusable="false"><path d="M37 15A16 16 0 0 0 9 13l-3 4"/><path d="m6 10 0 7 7-1M11 33a16 16 0 0 0 28 2l3-4"/><path d="m42 38 0-7-7 1"/><circle cx="21" cy="21" r="5"/><path d="M19 21h4m-2-2v4"/><circle cx="29" cy="27" r="5"/><path d="M27 27h4"/><path d="M25 34h12v10H25zM27 37h8m-8 3h6"/></svg></span>Transaksi</button>
@@ -84,6 +84,7 @@
                 <p class="sidebar-label">Data &amp; laporan</p>
                 <button class="nav-button" data-page="persediaan" data-nav-id="persediaan" onclick="showPage('persediaan')" aria-label="Persediaan" title="Persediaan"><span class="sidebar-icon sidebar-icon-inventory" aria-hidden="true"><svg viewBox="0 0 48 48" focusable="false"><path d="m7 19 17-9 17 9-17 10-17-10Z"/><path d="M7 19v17l17 9 17-9V19M24 29v16m-17-26 17 10 17-10"/><path d="m16 18 8-4 8 4-8 5-8-5Zm0 0v5l8 5v-5m8-5v5l-8 5"/><path d="M12 38h7m11-7 6-3v7l-6 3z"/></svg></span>Persediaan</button>
                 <button class="nav-button" data-page="laporan" data-nav-id="laporan" onclick="showPage('laporan')" aria-label="Laporan Akuntansi" title="Laporan Akuntansi"><span class="sidebar-icon sidebar-icon-report" aria-hidden="true"><svg viewBox="0 0 48 48" focusable="false"><path d="M12 5h20l6 6v31H12z"/><path d="M32 5v7h6M18 16h13M18 20h9M17 37h4V30h-4zm7 0h4V26h-4zm7 0h4V22h-4zM16 28l7-5 5 2 8-9"/><path d="m31 16 5 0-1 5"/><path d="M12 24H8m4 8H8"/></svg><span class="report-currency" aria-hidden="true">Rp</span></span>Laporan Akuntansi</button>
+                <button class="nav-button" data-page="panduan" data-nav-id="panduan" onclick="showPage('panduan')" aria-label="Panduan Pengguna" title="Panduan Pengguna"><span class="sidebar-icon" aria-hidden="true">?</span>Panduan Pengguna</button>
             </nav>
             <div class="sidebar-account">
                 <span class="account-avatar" aria-hidden="true">
@@ -242,7 +243,7 @@
                     <div class="dashboard-panel-heading">
                         <div>
                             <h3>Peringatan Stok Rendah</h3>
-                            <p>Bahan yang stoknya sudah menyentuh batas minimum.</p>
+                            <p id="dashboardLowStockSummary" aria-live="polite">Bahan yang stoknya sudah menyentuh batas minimum.</p>
                         </div>
                     </div>
                     <div id="dashboardLowStock" class="dashboard-list" aria-live="polite"></div>
@@ -332,11 +333,8 @@
                                 Kode Bahan
                             </label>
 
-                            <input
-                                type="text"
-                                id="kodeBahan"
-                                placeholder="Contoh: BB001"
-                                required>
+                            <input type="text" id="kodeBahan" readonly required>
+                            <small class="form-hint">Kode dibuat otomatis.</small>
 
                         </div>
 
@@ -351,6 +349,7 @@
                                 type="text"
                                 id="namaBahan"
                                 placeholder="Contoh: Kain Katun"
+                                maxlength="100"
                                 required>
 
                         </div>
@@ -366,6 +365,7 @@
                                 type="text"
                                 id="jenisBahan"
                                 placeholder="Contoh: Kain"
+                                maxlength="50"
                                 required>
 
                         </div>
@@ -407,25 +407,15 @@
 
 
                         <div class="form-group">
-
-                            <label for="stokBahan">
-                                Stok Awal
-                            </label>
-
+                            <label for="stokMinimumBahan">Batas Minimum Stok</label>
                             <input
                                 type="number"
-                                id="stokBahan"
+                                id="stokMinimumBahan"
                                 min="0"
                                 step="0.01"
                                 value="0"
                                 required>
-
-                        </div>
-
-                        <div class="form-group">
-                            <label for="hargaPokokBahan">Harga Perolehan per Satuan (Rp)</label>
-                            <input type="number" id="hargaPokokBahan" min="0" step="1" value="0" required>
-                            <small class="form-hint" id="hargaPokokBahanHint">Isi jika memasukkan saldo awal.</small>
+                            <small class="form-hint">Peringatan muncul saat stok mencapai atau kurang dari batas ini. Isi 0 untuk menonaktifkannya.</small>
                         </div>
 
                     </div>
@@ -521,18 +511,24 @@
 
             </div>
 
-            <div id="bahan-habis-pakai" class="content-card recipe-card">
+        </section>
 
-                <div class="table-header">
-                    <h3>Bahan Habis Pakai</h3>
+        <section id="bahan-habis-pakai" class="page">
+            <div class="page-header">
+                <div>
+                    <h2>Bahan Habis Pakai</h2>
+                    <p>Catat komposisi bahan untuk tiap produk satu kali; daftar ini digunakan otomatis saat produksi dicatat.</p>
                 </div>
+            </div>
 
+            <div class="content-card recipe-card">
+                <h3>Daftar Bahan untuk Produksi</h3>
                 <form id="resepForm" class="recipe-form">
                     <div class="form-grid">
                         <div class="form-group">
-                            <label for="barangResep">Barang Jadi</label>
+                            <label for="barangResep">Produk</label>
                             <select id="barangResep" required>
-                                <option value="">-- Pilih Barang --</option>
+                                <option value="">-- Pilih Produk --</option>
                             </select>
                         </div>
 
@@ -550,7 +546,7 @@
                     </div>
 
                     <div class="form-actions">
-                        <button type="submit" class="btn btn-primary">Tambah Bahan Habis Pakai</button>
+                        <button type="submit" class="btn btn-primary">Tambah Bahan</button>
                     </div>
                 </form>
 
@@ -559,22 +555,19 @@
                         <thead>
                             <tr>
                                 <th>No</th>
-                                <th>Barang Jadi</th>
+                                <th>Produk</th>
                                 <th>Bahan Baku</th>
                                 <th>Jumlah per Produk</th>
                                 <th>Aksi</th>
                             </tr>
                         </thead>
                         <tbody id="tabelResep">
-                            <tr><td colspan="5" class="empty-data">Belum ada bahan habis pakai.</td></tr>
+                            <tr><td colspan="5" class="empty-data">Belum ada bahan untuk produksi.</td></tr>
                         </tbody>
                     </table>
                 </div>
-
             </div>
-
         </section>
-
 
 
         <!-- ======================================
@@ -626,11 +619,8 @@
                                 Kode Barang
                             </label>
 
-                            <input
-                                type="text"
-                                id="kodeBarang"
-                                placeholder="Contoh: BJ001"
-                                required>
+                            <input type="text" id="kodeBarang" readonly required>
+                            <small class="form-hint">Kode dibuat otomatis.</small>
 
                         </div>
 
@@ -645,6 +635,7 @@
                                 type="text"
                                 id="namaBarang"
                                 placeholder="Contoh: Blouse Wanita"
+                                maxlength="100"
                                 required>
 
                         </div>
@@ -660,6 +651,7 @@
                                 type="text"
                                 id="kategoriBarang"
                                 placeholder="Contoh: Blouse"
+                                maxlength="50"
                                 required>
 
                         </div>
@@ -699,26 +691,11 @@
                                 type="text"
                                 id="warnaBarang"
                                 placeholder="Contoh: Hitam"
+                                maxlength="30"
                                 required>
 
                         </div>
 
-
-                        <div class="form-group">
-
-                            <label for="stokBarang">Stok</label>
-
-                            <input
-                                type="number"
-                                id="stokBarang"
-                                min="0"
-                                step="1"
-                                value="0"
-                                required>
-
-                            <small class="form-hint" id="stokBarangHint"></small>
-
-                        </div>
 
                         <div class="form-group">
 
@@ -730,6 +707,7 @@
                                 type="number"
                                 id="hargaBarang"
                                 min="0"
+                                step="1"
                                 placeholder="Contoh: 150000"
                                 required>
 
@@ -931,31 +909,11 @@
 
 
                         <div class="form-group">
-
-                            <label for="jenisBarangTransaksi">
-                                Jenis Barang
-                            </label>
-
-                            <select
-                                id="jenisBarangTransaksi"
-                                required>
-
-                                <option value="">
-                                    -- Pilih Jenis Barang --
-                                </option>
-
-                                <option value="bahan_baku">
-                                    Bahan Baku
-                                </option>
-
-                                <option value="barang_jadi">
-                                    Barang Jadi
-                                </option>
-
+                            <label for="itemTransaksi">Bahan / Produk</label>
+                            <select id="itemTransaksi" required>
+                                <option value="">-- Pilih Transaksi terlebih dahulu --</option>
                             </select>
-
                         </div>
-
 
                         <div class="form-group">
 
@@ -1101,6 +1059,7 @@
                         <input type="date" id="laporanSampai" required>
                     </div>
                     <button class="btn btn-primary" type="submit">Tampilkan Laporan</button>
+                    <button class="btn btn-secondary" id="eksporLaporanButton" type="button" onclick="exportAccountingReport()" disabled>Ekspor CSV</button>
                 </form>
             </div>
 
@@ -1157,6 +1116,55 @@
             </div>
         </section>
 
+        <section id="panduan" class="page">
+            <div class="page-header">
+                <div>
+                    <h2>Panduan Pengguna</h2>
+                    <p>Langkah penggunaan dan aturan pencatatan Sistem Persediaan Fadilah Boutique.</p>
+                </div>
+            </div>
+
+            <div class="guide-grid">
+                <article class="content-card guide-card">
+                    <h3>1. Masuk ke aplikasi</h3>
+                    <p>Masuk menggunakan email dan kata sandi akun butik yang telah dibuat oleh pengelola. Aplikasi tidak menyediakan pendaftaran akun mandiri.</p>
+                </article>
+                <article class="content-card guide-card">
+                    <h3>2. Siapkan data persediaan</h3>
+                    <p>Tambahkan bahan baku dan tentukan satuannya. Kode bahan dibuat otomatis. Isi batas minimum untuk mengaktifkan peringatan stok rendah; nilai 0 menonaktifkannya. Catat saldo awal dan perubahan stok lewat menu Transaksi, bukan dari formulir data.</p>
+                </article>
+                <article class="content-card guide-card">
+                    <h3>3. Siapkan produk dan resep</h3>
+                    <p>Tambahkan produk; kode produk dibuat otomatis. Di menu Bahan Habis Pakai, hubungkan produk dengan bahan dan jumlah yang diperlukan untuk satu produk. Daftar ini disimpan sekali dan dipakai kembali setiap kali produksi dicatat.</p>
+                </article>
+                <article class="content-card guide-card">
+                    <h3>4. Catat transaksi</h3>
+                    <p>Catat pembelian bahan, pemakaian bahan, produksi, penjualan, saldo awal, atau penilaian stok melalui menu Transaksi. Pilih item dan isi jumlah serta nilai yang diminta.</p>
+                    <p>Daftar bahan atau produk otomatis menyesuaikan jenis transaksi, jadi jenis item tidak perlu dipilih dua kali. Untuk saldo awal atau penilaian stok lama, pilih item yang sesuai. Produksi memakai daftar bahan tersimpan untuk mengurangi bahan dan menambah stok barang jadi; harga jual terisi dari data produk.</p>
+                </article>
+                <article class="content-card guide-card">
+                    <h3>5. Pantau stok dan peringatan</h3>
+                    <p>Dashboard menampilkan ringkasan operasional. Bagian Peringatan Stok Rendah menampilkan bahan yang stoknya sama dengan atau di bawah batas minimum; pemberitahuan juga muncul ketika kondisi tersebut terdeteksi.</p>
+                </article>
+                <article class="content-card guide-card">
+                    <h3>6. Tampilkan dan ekspor laporan</h3>
+                    <p>Buka Laporan Akuntansi, tentukan tanggal awal dan akhir, lalu pilih Tampilkan Laporan. Pilih Ekspor CSV untuk mengunduh ringkasan, rincian persediaan, dan jurnal periode tersebut agar dapat dibuka di aplikasi spreadsheet.</p>
+                </article>
+            </div>
+
+            <div class="content-card guide-card">
+                <h3>Aturan input penting</h3>
+                <ul class="guide-list">
+                    <li>Lengkapi kolom wajib dan pilih data dari daftar yang tersedia.</li>
+                    <li>Jumlah dan stok tidak boleh negatif. Jumlah bahan baku dapat memakai pecahan sesuai satuannya, sedangkan jumlah barang jadi harus bilangan bulat.</li>
+                    <li>Jumlah resep harus lebih besar dari 0. Harga pada transaksi pembelian atau penjualan harus diisi sesuai jenis transaksi.</li>
+                    <li>Kode bahan dan produk dibuat otomatis. Jangan membuat kode baru atau mengetik ulang saldo stok di formulir master data.</li>
+                    <li>Jangan mengubah stok langsung untuk menggantikan transaksi. Gunakan menu Transaksi agar perubahan stok dan pencatatan akuntansi tetap terhubung.</li>
+                    <li>Jika terjadi kesalahan koneksi atau penyimpanan, periksa pesan notifikasi sebelum mencoba kembali agar transaksi tidak tercatat dua kali.</li>
+                </ul>
+            </div>
+        </section>
+
 
         <!-- ======================================
              PERSEDIAAN
@@ -1186,14 +1194,6 @@
                 <div class="table-header">
 
                     <h3>Stok Persediaan</h3>
-
-                    <button
-                        class="btn btn-secondary"
-                        onclick="loadPersediaan()">
-
-                        🔄 Refresh
-
-                    </button>
 
                 </div>
 

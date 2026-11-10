@@ -558,6 +558,11 @@ tbody tr:hover {
     transition: all 0.2s ease;
 }
 
+.btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+}
+
 .btn-small {
     padding: 7px 14px;
     font-size: 10px;
@@ -2138,6 +2143,36 @@ textarea:focus-visible {
     line-height: 1.6;
 }
 
+.guide-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+    margin-bottom: 20px;
+}
+
+.guide-card {
+    line-height: 1.7;
+}
+
+.guide-card p + p {
+    margin-top: 10px;
+}
+
+.guide-list {
+    display: grid;
+    gap: 8px;
+    margin-top: 12px;
+    padding-left: 22px;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 13px;
+}
+
+@media (max-width: 760px) {
+    .guide-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
 table tfoot {
     background: #f2eee8;
 }
@@ -2165,33 +2200,6 @@ table tfoot th {
 
 .dashboard-card:hover {
     transform: none;
-}
-
-#bahan-habis-pakai {
-    scroll-margin-top: 20px;
-}
-
-.workflow-steps {
-    display: grid;
-    gap: 10px;
-    margin: 0;
-    padding-left: 28px;
-    color: var(--text);
-    font-size: 14px;
-    line-height: 1.6;
-}
-
-.workflow-steps li {
-    padding: 2px 0 2px 4px;
-}
-
-.workflow-steps li::marker {
-    color: var(--gold-dark);
-    font-weight: 700;
-}
-
-.workflow-steps strong {
-    color: var(--primary);
 }
 
 .dashboard-insights {

@@ -15,6 +15,8 @@ let dataTransaksi = [];
 
 let editBahanBakuId = null;
 let editBarangJadiId = null;
+let currentAccountingReport = null;
+let lastLowStockNotificationSignature = null;
 
 
 /* =====================================================
@@ -184,20 +186,6 @@ async function initializeApplication() {
     createTransactionItemSelect();
 
 
-    // Event jenis barang transaksi
-    const jenisBarang =
-        document.getElementById(
-            "jenisBarangTransaksi"
-        );
-
-    if (jenisBarang) {
-
-        jenisBarang.addEventListener(
-            "change",
-            createTransactionItemSelect
-        );
-    }
-
     const jenisTransaksiInput = document.getElementById("jenisTransaksi");
 
     if (jenisTransaksiInput) {
@@ -205,9 +193,10 @@ async function initializeApplication() {
             document.getElementById("hargaPerolehanTransaksi").value = "";
             document.getElementById("hargaJualTransaksi").value = "";
             document.getElementById("metodePembayaranTransaksi").value = "";
-            syncTransactionCategory();
+            document.getElementById("jumlahTransaksi").value = "";
+            syncTransactionForm();
         });
-        syncTransactionCategory();
+        syncTransactionForm();
     }
 
     ["hargaPerolehanTransaksi", "hargaJualTransaksi", "jumlahTransaksi"].forEach(function (id) {
@@ -217,8 +206,8 @@ async function initializeApplication() {
         });
     });
 
-    document.getElementById("jenisBarangTransaksi").addEventListener("change", function () {
-        createTransactionItemSelect();
+    document.getElementById("itemTransaksi").addEventListener("change", function () {
+        syncTransactionQuantity();
         syncTransactionItemDetails();
         updateTransactionPreview();
     });
@@ -286,6 +275,15 @@ async function initializeApplication() {
         resepForm.addEventListener("submit", saveResep);
     }
 
+    [transaksiForm, resepForm].forEach(function (form) {
+        if (!form) return;
+        ["input", "change"].forEach(function (eventName) {
+            form.addEventListener(eventName, function () {
+                form.dataset.dirty = "true";
+            });
+        });
+    });
+
 
     // Load seluruh data
     await loadAllData();
@@ -335,7 +333,7 @@ async function loadAllData() {
    NAVIGASI HALAMAN
 ===================================================== */
 
-function showPage(pageId, navId) {
+function showPage(pageId) {
 
     // Semua halaman disembunyikan
     const pages =
@@ -375,13 +373,10 @@ function showPage(pageId, navId) {
     });
 
 
-    // Keep the active menu item distinct when a menu points to a section on another page.
     buttons.forEach(function (button) {
-        const activeNavId = navId || pageId;
         button.classList.toggle(
             "active",
-            button.dataset.page === pageId &&
-            button.dataset.navId === activeNavId
+            button.dataset.page === pageId
         );
     });
 
@@ -398,6 +393,10 @@ function showPage(pageId, navId) {
             "Koleksi Barang Jadi",
             "Kelola produk butik, stok siap jual, dan harga pokok setiap koleksi."
         ],
+        "bahan-habis-pakai": [
+            "Bahan Habis Pakai",
+            "Atur bahan yang digunakan setiap kali produk dibuat."
+        ],
         transaksi: [
             "Aktivitas Persediaan",
             "Catat pembelian bahan, produksi, penjualan langsung, dan saldo persediaan."
@@ -409,6 +408,10 @@ function showPage(pageId, navId) {
         laporan: [
             "Laporan Akuntansi",
             "Pantau penjualan tunai, HPP, laba kotor, dan jurnal umum butik."
+        ],
+        panduan: [
+            "Panduan Pengguna",
+            "Pelajari langkah pencatatan persediaan, transaksi, dan laporan."
         ]
     };
     const heading = pageHeadings[pageId];
@@ -423,15 +426,6 @@ function showPage(pageId, navId) {
 
 }
 
-function openBahanHabisPakai() {
-    showPage("bahan-baku", "bahan-habis-pakai");
-
-    const section = document.getElementById("bahan-habis-pakai");
-    window.scrollTo({
-        top: section.getBoundingClientRect().top + window.scrollY - 20
-    });
-}
-
 function getTodayDateString() {
     const today = new Date();
     const year = today.getFullYear();
@@ -440,11 +434,20 @@ function getTodayDateString() {
     return `${year}-${month}-${day}`;
 }
 
+function generateCatalogCode(prefix) {
+    const timestamp = Date.now().toString(36).toUpperCase();
+    const suffix = Math.random().toString(36).slice(2, 7).toUpperCase().padEnd(5, "0");
+    return `${prefix}${timestamp}${suffix}`;
+}
+
 async function loadAccountingReport() {
     const from = document.getElementById("laporanDari").value;
     const through = document.getElementById("laporanSampai").value;
     const journalBody = document.getElementById("tabelJurnal");
     const warning = document.getElementById("laporanPeringatan");
+    const exportButton = document.getElementById("eksporLaporanButton");
+    currentAccountingReport = null;
+    exportButton.disabled = true;
 
     if (!from || !through || from > through) {
         showNotification("Rentang tanggal laporan tidak valid.", "warning");
@@ -464,7 +467,7 @@ async function loadAccountingReport() {
                 .order("tanggal", { ascending: true })
                 .order("id_jurnal", { ascending: true }),
             supabaseClient.from("bahan_baku")
-                .select("nama_bahan, stok, harga_pokok_rata_rata")
+                .select("nama_bahan, satuan, stok, harga_pokok_rata_rata")
                 .eq("aktif", true),
             supabaseClient.from("barang_jadi")
                 .select("nama_barang, stok, harga_pokok_rata_rata")
@@ -487,12 +490,16 @@ async function loadAccountingReport() {
             .reduce((sum, item) => sum + Number(item.nilai_persediaan || 0), 0);
         const inventoryItems = [
             ...(bahanResult.data || []).map((item) => ({
+                type: "Bahan baku",
                 name: item.nama_bahan,
+                unit: item.satuan,
                 stock: Number(item.stok),
                 unitCost: Number(item.harga_pokok_rata_rata)
             })),
             ...(barangResult.data || []).map((item) => ({
+                type: "Barang jadi",
                 name: item.nama_barang,
+                unit: "unit",
                 stock: Number(item.stok),
                 unitCost: Number(item.harga_pokok_rata_rata)
             }))
@@ -518,6 +525,20 @@ async function loadAccountingReport() {
         document.getElementById("laporanNilaiPersediaan").textContent = formatRupiah(endingInventory);
         document.getElementById("totalDebit").textContent = formatRupiah(totalDebit);
         document.getElementById("totalKredit").textContent = formatRupiah(totalCredit);
+        currentAccountingReport = {
+            from: from,
+            through: through,
+            sales: sales,
+            hpp: hpp,
+            grossProfit: sales - hpp,
+            purchases: purchases,
+            endingInventory: endingInventory,
+            totalDebit: totalDebit,
+            totalCredit: totalCredit,
+            inventoryItems: inventoryItems,
+            journal: journal
+        };
+        exportButton.disabled = false;
 
         const warnings = [];
         if (unvaluedItems.length) {
@@ -561,6 +582,70 @@ async function loadAccountingReport() {
         console.error("Gagal memuat laporan akuntansi:", error);
         showNotification(error.message || "Gagal memuat laporan akuntansi.", "error");
     }
+}
+
+function csvEscape(value) {
+    let text = String(value == null ? "" : value);
+    if (typeof value !== "number" && /^[\u0000-\u0020]*[=+\-@]/.test(text)) {
+        text = "'" + text;
+    }
+    return `"${text.replace(/"/g, '""')}"`;
+}
+
+function exportAccountingReport() {
+    if (!currentAccountingReport) {
+        showNotification("Tampilkan laporan terlebih dahulu sebelum mengekspor.", "warning");
+        return;
+    }
+
+    const report = currentAccountingReport;
+    const rows = [
+        ["LAPORAN AKUNTANSI FADILAH BOUTIQUE"],
+        ["Periode", report.from, "s.d.", report.through],
+        [],
+        ["RINGKASAN", "NILAI (Rp)"],
+        ["Penjualan (Bayar Langsung)", report.sales],
+        ["Harga Pokok Penjualan", report.hpp],
+        ["Laba Kotor", report.grossProfit],
+        ["Pembelian Bahan", report.purchases],
+        ["Nilai Persediaan Saat Ini", report.endingInventory],
+        ["Total Debit", report.totalDebit],
+        ["Total Kredit", report.totalCredit],
+        [],
+        ["RINCIAN PERSEDIAAN"],
+        ["Jenis", "Nama", "Stok", "Satuan", "HPP Rata-rata (Rp)", "Nilai Persediaan (Rp)"],
+        ...report.inventoryItems.map((item) => [
+            item.type,
+            item.name,
+            item.stock,
+            item.unit,
+            item.unitCost,
+            item.stock * item.unitCost
+        ]),
+        [],
+        ["JURNAL UMUM"],
+        ["Tanggal", "Akun", "Keterangan", "Debit (Rp)", "Kredit (Rp)"],
+        ...report.journal.map((item) => [
+            item.tanggal,
+            item.akun,
+            item.keterangan || "",
+            Number(item.debit || 0),
+            Number(item.kredit || 0)
+        ])
+    ];
+    const csv = "\uFEFF" + rows.map((row) => row.map(csvEscape).join(",")).join("\r\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `laporan-akuntansi-${report.from}-${report.through}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(function () {
+        URL.revokeObjectURL(url);
+    }, 1000);
+    showNotification("Laporan berhasil diekspor ke CSV.", "success");
 }
 
 
@@ -636,6 +721,22 @@ async function loadDashboard() {
         renderDashboardStockChart(bahan);
         renderDashboardCategoryChart(barang);
         renderDashboardLowStock(bahan);
+        const lowStock = getLowStockMaterials(bahan);
+        const summary = document.getElementById("dashboardLowStockSummary");
+        summary.textContent = lowStock.length
+            ? `${lowStock.length} bahan mencapai atau berada di bawah batas minimum stok.`
+            : "Tidak ada bahan baku yang mencapai batas minimum stok.";
+        const signature = lowStock
+            .map((item) => `${item.id_bahan}:${item.stok}:${item.stok_minimum}`)
+            .join("|");
+        if (signature !== lastLowStockNotificationSignature) {
+            lastLowStockNotificationSignature = signature;
+            if (lowStock.length) {
+                const names = lowStock.slice(0, 3).map((item) => item.nama_bahan).join(", ");
+                const remaining = lowStock.length > 3 ? ` dan ${lowStock.length - 3} bahan lainnya` : "";
+                showNotification(`Peringatan stok rendah: ${names}${remaining}.`, "warning");
+            }
+        }
         renderDashboardBestSellers(transaksiBulan);
         renderDashboardActivity(aktivitas);
     } catch (error) {
@@ -734,13 +835,17 @@ function renderDashboardCategoryChart(barang) {
     `;
 }
 
+function getLowStockMaterials(bahan) {
+    return bahan
+        .filter((item) => Number(item.stok_minimum || 0) > 0 && Number(item.stok || 0) <= Number(item.stok_minimum))
+        .sort((a, b) => Number(a.stok || 0) - Number(b.stok || 0));
+}
+
 function renderDashboardLowStock(bahan) {
     const container = document.getElementById("dashboardLowStock");
     if (!container) return;
 
-    const lowStock = bahan
-        .filter((item) => Number(item.stok_minimum || 0) > 0 && Number(item.stok || 0) <= Number(item.stok_minimum))
-        .sort((a, b) => Number(a.stok || 0) - Number(b.stok || 0));
+    const lowStock = getLowStockMaterials(bahan);
 
     if (lowStock.length === 0) {
         container.innerHTML = bahan.length
@@ -926,7 +1031,8 @@ function renderBahanBaku(
                 "stok-habis";
 
         } else if (
-            Number(item.stok) <= 5
+            Number(item.stok_minimum) > 0 &&
+            Number(item.stok) <= Number(item.stok_minimum)
         ) {
 
             stokClass =
@@ -1022,14 +1128,8 @@ function openBahanBakuForm() {
     ).reset();
 
 
-    document.getElementById(
-        "stokBahan"
-    ).value = 0;
-    document.getElementById("stokBahan").readOnly = false;
-    document.getElementById("hargaPokokBahan").value = 0;
-    document.getElementById("hargaPokokBahan").readOnly = false;
-    document.getElementById("hargaPokokBahanHint").textContent =
-        "Saldo awal akan dibuatkan jurnal modal. Stok masuk berikutnya dicatat lewat Transaksi.";
+    document.getElementById("kodeBahan").value = generateCatalogCode("BB");
+    document.getElementById("stokMinimumBahan").value = 0;
 
 
     document.querySelector(
@@ -1083,28 +1183,22 @@ async function saveBahanBaku(event) {
             "satuanBahan"
         ).value;
 
+    const stokMinimum = Number(document.getElementById("stokMinimumBahan").value);
 
-    const stok =
-        Number(
-            document.getElementById(
-                "stokBahan"
-            ).value
-        );
-
-    const hargaPokok = Number(document.getElementById("hargaPokokBahan").value);
-
-    if (!kode || !nama || !jenis || !satuan || stok < 0 || hargaPokok < 0) {
+    if (
+        !kode ||
+        !nama ||
+        !jenis ||
+        !satuan ||
+        !Number.isFinite(stokMinimum) ||
+        stokMinimum < 0
+    ) {
 
         showNotification(
-            "Semua data bahan baku harus diisi.",
+            "Lengkapi data bahan baku dan pastikan batas minimum stok tidak negatif.",
             "warning"
         );
 
-        return;
-    }
-
-    if (!editBahanBakuId && stok > 0 && hargaPokok <= 0) {
-        showNotification("Isi harga perolehan per satuan untuk saldo awal bahan.", "warning");
         return;
     }
 
@@ -1122,7 +1216,8 @@ async function saveBahanBaku(event) {
                     kode_bahan: kode,
                     nama_bahan: nama,
                     jenis_bahan: jenis,
-                    satuan: satuan
+                    satuan: satuan,
+                    stok_minimum: stokMinimum
                 })
                 .eq(
                     "id_bahan",
@@ -1144,10 +1239,7 @@ async function saveBahanBaku(event) {
 
             // INSERT
 
-            const {
-                data: bahanBaru,
-                error
-            } = await supabaseClient
+            const { error } = await supabaseClient
                 .from("bahan_baku")
                 .insert([{
                     kode_bahan: kode,
@@ -1155,34 +1247,17 @@ async function saveBahanBaku(event) {
                     jenis_bahan: jenis,
                     satuan: satuan,
                     stok: 0,
+                    stok_minimum: stokMinimum,
                     harga_pokok_rata_rata: 0
-                }])
-                .select("id_bahan")
-                .single();
+                }]);
 
 
             if (error) {
                 throw error;
             }
 
-            if (stok > 0) {
-                const { error: openingError } = await supabaseClient
-                    .from("transaksi")
-                    .insert([{
-                        tanggal: getTodayDateString(),
-                        jenis_transaksi: "SALDO_AWAL",
-                        keterangan: "Saldo awal bahan baku",
-                        jumlah: stok,
-                        harga_perolehan_satuan: hargaPokok,
-                        id_bahan: bahanBaru.id_bahan,
-                        id_barang: null
-                    }]);
-
-                if (openingError) throw openingError;
-            }
-
             showNotification(
-                "Bahan baku berhasil ditambahkan.",
+                "Bahan baku berhasil ditambahkan. Catat stok awal melalui menu Transaksi.",
                 "success"
             );
 
@@ -1209,11 +1284,12 @@ async function saveBahanBaku(event) {
         if (
             error.code === "23505"
         ) {
-
-            showNotification(
-                "Kode bahan sudah digunakan.",
-                "error"
-            );
+            if (!editBahanBakuId) {
+                document.getElementById("kodeBahan").value = generateCatalogCode("BB");
+                showNotification("Kode bahan baru dibuat otomatis. Tekan Simpan kembali.", "warning");
+            } else {
+                showNotification("Kode bahan sudah digunakan.", "error");
+            }
 
         } else {
 
@@ -1285,17 +1361,7 @@ async function editBahanBaku(id) {
     ).value =
         item.satuan;
 
-
-    document.getElementById(
-        "stokBahan"
-    ).value =
-        item.stok;
-
-    document.getElementById("stokBahan").readOnly = true;
-    document.getElementById("hargaPokokBahan").value = item.harga_pokok_rata_rata || 0;
-    document.getElementById("hargaPokokBahan").readOnly = true;
-    document.getElementById("hargaPokokBahanHint").textContent =
-        "Saldo dan nilai persediaan hanya diubah melalui Transaksi agar jurnal tetap seimbang.";
+    document.getElementById("stokMinimumBahan").value = item.stok_minimum || 0;
 
 
     window.scrollTo({
@@ -1544,13 +1610,6 @@ function renderBarangJadi(
             stokClass =
                 "stok-habis";
 
-        } else if (
-            Number(item.stok) <= 5
-        ) {
-
-            stokClass =
-                "stok-sedikit";
-
         }
 
 
@@ -1658,15 +1717,7 @@ function openBarangJadiForm() {
     ).reset();
 
 
-    document.getElementById(
-        "stokBarang"
-    ).value = 0;
-
-    document.getElementById("stokBarang").readOnly = true;
-    document.querySelector('#formBarangJadi label[for="stokBarang"]').textContent = "Stok Awal";
-    document.getElementById("stokBarangHint").textContent =
-        "Stok baru bertambah melalui Produksi setelah resep disimpan di menu Bahan Habis Pakai.";
-
+    document.getElementById("kodeBarang").value = generateCatalogCode("BJ");
 
     document.querySelector(
         "#formBarangJadi h3"
@@ -1715,7 +1766,6 @@ async function saveBarangJadi(event) {
         document.getElementById(
             "warnaBarang"
         ).value.trim();
-    const stok = Number(document.getElementById("stokBarang").value);
     const harga =
         Number(
             document.getElementById(
@@ -1728,19 +1778,11 @@ async function saveBarangJadi(event) {
         !kategori ||
         !ukuran ||
         !warna ||
-        !Number.isInteger(stok) ||
-        stok < 0
+        !Number.isFinite(harga) ||
+        harga < 0
     ) {
         showNotification(
-            "Lengkapi data barang jadi dan isi stok dengan bilangan bulat minimal 0.",
-            "warning"
-        );
-        return;
-    }
-
-    if (!editBarangJadiId && stok > 0) {
-        showNotification(
-            "Simpan barang jadi tanpa stok awal dahulu, lalu tambahkan resep di menu Bahan Habis Pakai.",
+            "Lengkapi data barang jadi dan pastikan harga tidak negatif.",
             "warning"
         );
         return;
@@ -1785,7 +1827,12 @@ async function saveBarangJadi(event) {
         } catch (error) {
             console.error(error);
             if (error.code === "23505") {
-                showNotification("Kode barang sudah digunakan.", "error");
+                if (!editBarangJadiId) {
+                    document.getElementById("kodeBarang").value = generateCatalogCode("BJ");
+                    showNotification("Kode barang baru dibuat otomatis. Tekan Simpan kembali.", "warning");
+                } else {
+                    showNotification("Kode barang sudah digunakan.", "error");
+                }
             } else {
                 const detailError = [error.message, error.details, error.hint]
                     .filter(Boolean)
@@ -1796,7 +1843,7 @@ async function saveBarangJadi(event) {
         }
 
         showNotification(
-            "Barang jadi berhasil disimpan. Tambahkan resep di menu Bahan Habis Pakai; HPP per unit dihitung otomatis.",
+            "Barang jadi berhasil disimpan. Tambahkan bahan produksinya melalui menu Bahan Habis Pakai.",
             "success"
         );
     }
@@ -1837,12 +1884,6 @@ async function editBarangJadi(id) {
         "formBarangJadi"
     ).classList.remove("hidden");
 
-    document.getElementById("stokBarang").readOnly = true;
-    document.querySelector('#formBarangJadi label[for="stokBarang"]').textContent = "Stok Saat Ini";
-    document.getElementById("stokBarangHint").textContent =
-        "Stok hanya berubah melalui transaksi agar HPP, bahan, dan jurnal tetap terhubung.";
-
-
     document.querySelector(
         "#formBarangJadi h3"
     ).textContent =
@@ -1877,12 +1918,6 @@ async function editBarangJadi(id) {
         "warnaBarang"
     ).value =
         item.warna || "";
-
-
-    document.getElementById(
-        "stokBarang"
-    ).value =
-        item.stok;
 
 
     document.getElementById(
@@ -2103,7 +2138,7 @@ function renderResep() {
     if (!tabel) return;
 
     if (dataResep.length === 0) {
-        tabel.innerHTML = '<tr><td colspan="5" class="empty-data">Belum ada bahan habis pakai.</td></tr>';
+        tabel.innerHTML = '<tr><td colspan="5" class="empty-data">Belum ada bahan untuk produksi.</td></tr>';
         return;
     }
 
@@ -2154,7 +2189,12 @@ async function saveResep(event) {
         jumlah_digunakan: Number(document.getElementById("jumlahBahanResep").value)
     };
 
-    if (!payload.id_barang || !payload.id_bahan || payload.jumlah_digunakan <= 0) {
+    if (
+        !payload.id_barang ||
+        !payload.id_bahan ||
+        !Number.isFinite(payload.jumlah_digunakan) ||
+        payload.jumlah_digunakan <= 0
+    ) {
         showNotification("Pilih produk, bahan, dan jumlah yang valid.", "warning");
         return;
     }
@@ -2166,7 +2206,7 @@ async function saveResep(event) {
     if (error) {
         showNotification(
             error.code === "23505"
-                ? "Bahan tersebut sudah ada untuk produk ini."
+                ? "Bahan tersebut sudah ada pada resep produk ini."
                 : error.message || "Gagal menyimpan bahan habis pakai.",
             "error"
         );
@@ -2174,7 +2214,8 @@ async function saveResep(event) {
     }
 
     document.getElementById("resepForm").reset();
-    showNotification("Bahan habis pakai berhasil ditambahkan.", "success");
+    document.getElementById("resepForm").dataset.dirty = "false";
+    showNotification("Bahan habis pakai berhasil ditambahkan dan akan digunakan saat produksi.", "success");
     await loadResep();
 }
 
@@ -2198,29 +2239,22 @@ async function deleteResep(id) {
 }
 
 
-function syncTransactionCategory() {
-
-    const jenisTransaksi = document.getElementById("jenisTransaksi").value;
-    const jenisBarang = document.getElementById("jenisBarangTransaksi");
-    const jumlahTransaksi = document.getElementById("jumlahTransaksi");
-
-    if (["masuk", "bahan_keluar"].includes(jenisTransaksi)) {
-        jenisBarang.value = "bahan_baku";
-    } else if (["keluar", "produksi"].includes(jenisTransaksi)) {
-        jenisBarang.value = "barang_jadi";
-    } else if (["saldo_awal", "penilaian_awal"].includes(jenisTransaksi) && !jenisBarang.value) {
-        jenisBarang.value = "bahan_baku";
-    }
-
-    if (jumlahTransaksi) {
-        const step = ["masuk", "bahan_keluar"].includes(jenisTransaksi) ? "0.01" : "1";
-        jumlahTransaksi.min = step;
-        jumlahTransaksi.step = step;
-    }
-
+function syncTransactionForm() {
     createTransactionItemSelect();
+    syncTransactionQuantity();
     syncTransactionFields();
+    syncTransactionItemDetails();
     updateTransactionPreview();
+}
+
+function syncTransactionQuantity() {
+    const type = document.getElementById("jenisTransaksi").value;
+    const selectedItemType = document.getElementById("itemTransaksi").value.split("-")[0];
+    const materialTransaction = ["masuk", "bahan_keluar"].includes(type) ||
+        (["saldo_awal", "penilaian_awal"].includes(type) && selectedItemType === "bahan");
+    const quantity = document.getElementById("jumlahTransaksi");
+    quantity.min = materialTransaction ? "0.01" : "1";
+    quantity.step = materialTransaction ? "0.01" : "1";
 }
 
 function syncTransactionFields() {
@@ -2233,7 +2267,6 @@ function syncTransactionFields() {
     const salePrice = document.getElementById("hargaJualTransaksi");
     const payment = document.getElementById("metodePembayaranTransaksi");
     const quantity = document.getElementById("jumlahTransaksi");
-    const category = document.getElementById("jenisBarangTransaksi");
 
     document.getElementById("hargaPerolehanWrapper").hidden = !(purchase || opening || valuation);
     document.querySelector('#hargaPerolehanWrapper label').textContent =
@@ -2244,12 +2277,6 @@ function syncTransactionFields() {
     purchasePrice.required = purchase || opening || valuation;
     salePrice.required = sale;
     payment.required = purchase || sale;
-
-    const fixedCategory = ["masuk", "bahan_keluar"].includes(type)
-        ? "bahan_baku"
-        : (["keluar", "produksi"].includes(type) ? "barang_jadi" : null);
-    category.disabled = Boolean(fixedCategory);
-    if (fixedCategory) category.value = fixedCategory;
 
     quantity.readOnly = valuation;
     document.querySelector('label[for="jumlahTransaksi"]').textContent =
@@ -2270,6 +2297,8 @@ function syncTransactionItemDetails() {
         if (record) {
             document.getElementById("jumlahTransaksi").value = record.stok;
             document.getElementById("jumlahTransaksi").min = record.stok || "0";
+            document.getElementById("hargaPerolehanTransaksi").value =
+                record.harga_pokok_rata_rata > 0 ? record.harga_pokok_rata_rata : "";
         }
     } else if (type === "keluar") {
         const id = Number(picker.value.split("-")[1]);
@@ -2340,8 +2369,8 @@ function updateTransactionPreview() {
         if (unitMaterialCost === null) {
             const hasRecipe = dataResep.some((item) => Number(item.id_barang) === itemId);
             preview.textContent = hasRecipe
-                ? "HPP produksi belum dapat dihitung. Catat harga perolehan untuk seluruh bahan di resep terlebih dahulu."
-                : "HPP produksi belum dapat dihitung. Tambahkan resep bahan untuk barang jadi ini terlebih dahulu.";
+                ? "HPP produksi belum dapat dihitung. Catat harga perolehan untuk seluruh bahan habis pakai terlebih dahulu."
+                : "HPP produksi belum dapat dihitung. Tambahkan bahan habis pakai untuk barang jadi ini terlebih dahulu.";
             return;
         }
 
@@ -2405,116 +2434,24 @@ function getAutoTransactionDescription() {
 ===================================================== */
 
 function createTransactionItemSelect() {
+    const existing = document.getElementById("itemTransaksi");
+    const type = document.getElementById("jenisTransaksi").value;
+    const includeMaterials = ["masuk", "bahan_keluar", "saldo_awal", "penilaian_awal"].includes(type);
+    const includeProducts = ["keluar", "produksi", "saldo_awal", "penilaian_awal"].includes(type);
+    const selection = existing.value;
 
-    const jenisBarang =
-        document.getElementById(
-            "jenisBarangTransaksi"
-        );
+    existing.innerHTML = '<option value="">-- Pilih Bahan / Produk --</option>';
 
-
-    if (!jenisBarang) {
-        return;
+    if (includeMaterials) {
+        dataBahanBaku.forEach(function (item) {
+            const option = document.createElement("option");
+            option.value = `bahan-${item.id_bahan}`;
+            option.textContent = `${item.kode_bahan} - ${item.nama_bahan} (Stok: ${item.stok} ${item.satuan})`;
+            existing.add(option);
+        });
     }
 
-
-    let existing =
-        document.getElementById(
-            "itemTransaksi"
-        );
-
-
-    if (!existing) {
-
-        const wrapper =
-            document.createElement(
-                "div"
-            );
-
-
-        wrapper.className =
-            "form-group";
-
-
-        wrapper.id =
-            "itemTransaksiWrapper";
-
-
-        wrapper.innerHTML = `
-
-            <label for="itemTransaksi">
-                Pilih Barang
-            </label>
-
-            <select
-                id="itemTransaksi"
-                required>
-
-                <option value="">
-                    -- Pilih Barang --
-                </option>
-
-            </select>
-
-        `;
-
-
-        jenisBarang
-            .parentElement
-            .after(wrapper);
-
-
-        existing =
-            document.getElementById(
-                "itemTransaksi"
-            );
-
-    }
-
-
-    const jenis =
-        jenisBarang.value;
-    const specialType = ["saldo_awal", "penilaian_awal"].includes(
-        document.getElementById("jenisTransaksi").value
-    );
-
-
-    existing.innerHTML = `
-        <option value="">
-            -- Pilih Barang --
-        </option>
-    `;
-
-
-    if (jenis === "bahan_baku" || specialType) {
-
-        dataBahanBaku.forEach(
-            function (item) {
-
-                existing.innerHTML += `
-
-                    <option
-                        value="bahan-${item.id_bahan}">
-
-                        ${escapeHTML(
-                            item.kode_bahan
-                        )}
-                        -
-                        ${escapeHTML(
-                            item.nama_bahan
-                        )}
-                        (Stok: ${item.stok})
-
-                    </option>
-
-                `;
-
-            }
-        );
-
-    }
-
-
-    if (jenis === "barang_jadi" || specialType) {
+    if (includeProducts) {
 
         dataBarangJadi.forEach(
             function (item) {
@@ -2548,12 +2485,10 @@ function createTransactionItemSelect() {
 
     }
 
-    if (!existing.dataset.detailsListener) {
-        existing.addEventListener("change", function () {
-            syncTransactionItemDetails();
-            updateTransactionPreview();
-        });
-        existing.dataset.detailsListener = "true";
+    const selectedOption = Array.from(existing.options)
+        .find((option) => option.value === selection && !option.disabled);
+    if (selection && selectedOption) {
+        existing.value = selection;
     }
 
 }
@@ -2605,6 +2540,8 @@ function showNotification(message, type = "info") {
     const notif = document.createElement("div");
 
     notif.className = `notification ${type}`;
+    notif.setAttribute("role", type === "error" || type === "warning" ? "alert" : "status");
+    notif.setAttribute("aria-live", type === "error" || type === "warning" ? "assertive" : "polite");
 
     notif.textContent = message;
 
@@ -2831,6 +2768,7 @@ function renderPersediaan() {
                 nama: item.nama_bahan,
                 jenis: "Bahan Baku",
                 stok: item.stok,
+                stokMinimum: Number(item.stok_minimum || 0),
                 satuan: item.satuan,
                 unitCost: item.harga_pokok_rata_rata
             };
@@ -2840,6 +2778,7 @@ function renderPersediaan() {
                 nama: item.nama_barang,
                 jenis: "Barang Jadi",
                 stok: item.stok,
+                stokMinimum: 0,
                 satuan: "pcs",
                 unitCost: item.harga_pokok_rata_rata
             };
@@ -2867,7 +2806,7 @@ function renderPersediaan() {
 
         if (Number(item.stok) === 0) {
             stokClass = "stok-habis";
-        } else if (Number(item.stok) <= 5) {
+        } else if (item.stokMinimum > 0 && Number(item.stok) <= item.stokMinimum) {
             stokClass = "stok-sedikit";
         }
 
@@ -2897,7 +2836,6 @@ async function saveTransaksi(event) {
 
     const tanggal = document.getElementById("tanggalTransaksi").value;
     const jenisTransaksi = document.getElementById("jenisTransaksi").value;
-    const jenisBarang = document.getElementById("jenisBarangTransaksi").value;
     const itemTransaksi = document.getElementById("itemTransaksi");
     const jumlah = Number(document.getElementById("jumlahTransaksi").value);
     const keterangan = getAutoTransactionDescription();
@@ -2905,7 +2843,7 @@ async function saveTransaksi(event) {
     const hargaJual = Number(document.getElementById("hargaJualTransaksi").value);
     const metodePembayaran = document.getElementById("metodePembayaranTransaksi").value;
 
-    if (!tanggal || !jenisTransaksi || !jenisBarang || !itemTransaksi || !itemTransaksi.value) {
+    if (!tanggal || !jenisTransaksi || !itemTransaksi || !itemTransaksi.value) {
 
         showNotification(
             "Mohon lengkapi semua data transaksi.",
@@ -2915,7 +2853,7 @@ async function saveTransaksi(event) {
         return;
     }
 
-    if ((!jumlah || jumlah <= 0) && jenisTransaksi !== "penilaian_awal") {
+    if ((!Number.isFinite(jumlah) || jumlah <= 0) && jenisTransaksi !== "penilaian_awal") {
 
         showNotification(
             "Jumlah transaksi harus lebih dari 0.",
@@ -2925,32 +2863,24 @@ async function saveTransaksi(event) {
         return;
     }
 
-    if (["masuk", "bahan_keluar"].includes(jenisTransaksi) && jenisBarang !== "bahan_baku") {
-
-        showNotification(
-            "Transaksi bahan masuk atau keluar hanya berlaku untuk Bahan Baku.",
-            "warning"
-        );
-
-        return;
-    }
-
-    if (["keluar", "produksi"].includes(jenisTransaksi) && jenisBarang !== "barang_jadi") {
-
-        showNotification(
-            "Stok keluar dan produksi hanya berlaku untuk Barang Jadi.",
-            "warning"
-        );
-
-        return;
-    }
-
     const [tipeItem, idItemStr] = itemTransaksi.value.split("-");
     const idItem = Number(idItemStr);
 
-    const specialType = ["saldo_awal", "penilaian_awal"].includes(jenisTransaksi);
-    if (!specialType && ((jenisBarang === "bahan_baku") !== (tipeItem === "bahan"))) {
-        showNotification("Jenis barang tidak sesuai dengan jenis transaksi.", "warning");
+    if (["masuk", "bahan_keluar"].includes(jenisTransaksi) && tipeItem !== "bahan") {
+        showNotification(
+            "Pilih bahan baku untuk transaksi pembelian atau pemakaian.",
+            "warning"
+        );
+
+        return;
+    }
+
+    if (["keluar", "produksi"].includes(jenisTransaksi) && tipeItem !== "barang") {
+        showNotification(
+            "Pilih barang jadi untuk transaksi produksi atau penjualan.",
+            "warning"
+        );
+
         return;
     }
 
@@ -2959,7 +2889,7 @@ async function saveTransaksi(event) {
     const jumlahTransaksi = jenisTransaksi === "penilaian_awal"
         ? Number(record ? record.stok : 0)
         : jumlah;
-    if (!["masuk", "bahan_keluar"].includes(jenisTransaksi) && !Number.isInteger(jumlahTransaksi)) {
+    if (tipeItem === "barang" && !Number.isInteger(jumlahTransaksi)) {
         showNotification("Jumlah barang jadi harus berupa bilangan bulat.", "warning");
         return;
     }
@@ -2969,12 +2899,15 @@ async function saveTransaksi(event) {
         return;
     }
 
-    if (["masuk", "saldo_awal", "penilaian_awal"].includes(jenisTransaksi) && hargaPerolehan <= 0) {
+    if (
+        ["masuk", "saldo_awal", "penilaian_awal"].includes(jenisTransaksi) &&
+        (!Number.isFinite(hargaPerolehan) || hargaPerolehan <= 0)
+    ) {
         showNotification("Masukkan harga perolehan per satuan lebih dari 0.", "warning");
         return;
     }
 
-    if (jenisTransaksi === "keluar" && hargaJual <= 0) {
+    if (jenisTransaksi === "keluar" && (!Number.isFinite(hargaJual) || hargaJual <= 0)) {
         showNotification("Masukkan harga jual per unit lebih dari 0.", "warning");
         return;
     }
@@ -2993,7 +2926,7 @@ async function saveTransaksi(event) {
         }
 
         if (resepProduk.some((item) => item.bahan_baku && item.bahan_baku.aktif === false)) {
-            showNotification("Resep memakai bahan yang diarsipkan. Perbarui bahan habis pakai produk ini dulu.", "warning");
+            showNotification("Bahan habis pakai produk ini sudah diarsipkan. Perbarui daftarnya terlebih dahulu.", "warning");
             return;
         }
     }
@@ -3033,6 +2966,7 @@ async function saveTransaksi(event) {
         showNotification(messages[jenisTransaksi], "success");
 
         document.getElementById("transaksiForm").reset();
+        document.getElementById("transaksiForm").dataset.dirty = "false";
 
         const tanggalInput = document.getElementById("tanggalTransaksi");
         tanggalInput.value = tanggal;
@@ -3093,11 +3027,13 @@ async function autoRefreshActivePage() {
     const formBahanBaku = document.getElementById("formBahanBaku");
     const formBarangJadi = document.getElementById("formBarangJadi");
     const resepForm = document.getElementById("resepForm");
+    const transaksiForm = document.getElementById("transaksiForm");
 
     const sedangIsiForm =
         (formBahanBaku && !formBahanBaku.classList.contains("hidden")) ||
         (formBarangJadi && !formBarangJadi.classList.contains("hidden")) ||
-        (resepForm && resepForm.contains(document.activeElement));
+        (resepForm && resepForm.dataset.dirty === "true") ||
+        (transaksiForm && transaksiForm.dataset.dirty === "true");
 
     if (sedangIsiForm) {
         return;
@@ -3130,7 +3066,16 @@ async function autoRefreshActivePage() {
                 await loadResep();
                 break;
 
+            case "bahan-habis-pakai":
+                await loadBahanBaku();
+                await loadBarangJadi();
+                await loadResep();
+                break;
+
             case "transaksi":
+                await loadBahanBaku();
+                await loadBarangJadi();
+                await loadResep();
                 await loadTransaksi();
                 break;
 

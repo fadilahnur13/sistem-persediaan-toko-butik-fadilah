@@ -1,16 +1,19 @@
 # Sistem Persediaan Toko Butik
 
-Aplikasi web Fadilah Boutique untuk mengelola bahan baku, barang jadi, resep produksi, transaksi persediaan, dan laporan akuntansi. Frontend statis menggunakan Supabase untuk autentikasi dan penyimpanan data.
+Aplikasi web Fadilah Boutique untuk mengelola bahan baku, barang jadi, bahan habis pakai untuk produksi, transaksi persediaan, dan laporan akuntansi. Frontend statis menggunakan Supabase untuk autentikasi dan penyimpanan data.
 
 **Buka aplikasi:** [Fadilah Boutique](https://fadilahnur13.github.io/sistem-persediaan-toko-butik-fadilah/)
 
 ## Fitur
 
 - Dashboard persediaan bahan baku, barang jadi, dan transaksi.
-- Pengelolaan bahan baku, barang jadi, bahan habis pakai, dan resep produksi.
+- Pengelolaan bahan baku, barang jadi, dan bahan habis pakai untuk produksi.
 - Pencatatan pembelian, pemakaian bahan, produksi, penjualan, dan saldo awal persediaan.
+- Pengaturan batas minimum stok bahan baku dan peringatan saat stok mencapai batas.
 - Pembaruan stok, perhitungan harga pokok, dan jurnal melalui trigger database.
-- Laporan persediaan dan akuntansi.
+- Laporan persediaan dan akuntansi dengan ekspor CSV.
+- Panduan penggunaan dan validasi input pada formulir.
+- Kode bahan dan produk dibuat otomatis; perubahan stok dicatat melalui transaksi agar semua data tetap terhubung.
 
 ## Memulai
 
