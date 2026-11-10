@@ -408,10 +408,6 @@ function showPage(pageId) {
         laporan: [
             "Laporan Akuntansi",
             "Pantau penjualan tunai, HPP, laba kotor, dan jurnal umum butik."
-        ],
-        panduan: [
-            "Panduan Pengguna",
-            "Pelajari langkah pencatatan persediaan, transaksi, dan laporan."
         ]
     };
     const heading = pageHeadings[pageId];

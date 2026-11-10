@@ -2143,36 +2143,6 @@ textarea:focus-visible {
     line-height: 1.6;
 }
 
-.guide-grid {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 16px;
-    margin-bottom: 20px;
-}
-
-.guide-card {
-    line-height: 1.7;
-}
-
-.guide-card p + p {
-    margin-top: 10px;
-}
-
-.guide-list {
-    display: grid;
-    gap: 8px;
-    margin-top: 12px;
-    padding-left: 22px;
-    font-family: Arial, Helvetica, sans-serif;
-    font-size: 13px;
-}
-
-@media (max-width: 760px) {
-    .guide-grid {
-        grid-template-columns: minmax(0, 1fr);
-    }
-}
-
 table tfoot {
     background: #f2eee8;
 }

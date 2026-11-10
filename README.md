@@ -14,7 +14,7 @@ Aplikasi web Fadilah Boutique untuk mengelola bahan baku, barang jadi, bahan hab
 - Riwayat transaksi dan jurnal laporan keuangan diurutkan berdasarkan tanggal.
 - Pembaruan stok, perhitungan harga pokok, dan jurnal melalui trigger database.
 - Laporan persediaan dan akuntansi dengan ekspor CSV.
-- Panduan penggunaan dan validasi input pada formulir.
+- Validasi input pada formulir.
 - Kode bahan dan produk dibuat otomatis; perubahan stok dicatat melalui transaksi agar semua data tetap terhubung.
 
 ## Memulai

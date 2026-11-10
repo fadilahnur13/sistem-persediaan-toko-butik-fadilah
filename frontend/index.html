@@ -84,8 +84,6 @@
                 <button class="nav-button" data-page="persediaan" data-nav-id="persediaan" onclick="showPage('persediaan')" aria-label="Persediaan" title="Persediaan"><span class="sidebar-icon sidebar-icon-inventory" aria-hidden="true"><svg viewBox="0 0 48 48" focusable="false"><path d="m7 19 17-9 17 9-17 10-17-10Z"/><path d="M7 19v17l17 9 17-9V19M24 29v16m-17-26 17 10 17-10"/><path d="m16 18 8-4 8 4-8 5-8-5Zm0 0v5l8 5v-5m8-5v5l-8 5"/><path d="M12 38h7m11-7 6-3v7l-6 3z"/></svg></span>Persediaan</button>
                 <button class="nav-button" data-page="laporan" data-nav-id="laporan" onclick="showPage('laporan')" aria-label="Laporan Akuntansi" title="Laporan Akuntansi"><span class="sidebar-icon sidebar-icon-report" aria-hidden="true"><svg viewBox="0 0 48 48" focusable="false"><path d="M12 5h20l6 6v31H12z"/><path d="M32 5v7h6M18 16h13M18 20h9M17 37h4V30h-4zm7 0h4V26h-4zm7 0h4V22h-4zM16 28l7-5 5 2 8-9"/><path d="m31 16 5 0-1 5"/><path d="M12 24H8m4 8H8"/></svg><span class="report-currency" aria-hidden="true">Rp</span></span>Laporan Akuntansi</button>
 
-                <p class="sidebar-label">Bantuan</p>
-                <button class="nav-button" data-page="panduan" data-nav-id="panduan" onclick="showPage('panduan')" aria-label="Panduan Pengguna" title="Panduan Pengguna"><span class="sidebar-icon" aria-hidden="true">?</span>Panduan Pengguna</button>
             </nav>
             <div class="sidebar-account">
                 <span class="account-avatar" aria-hidden="true">
@@ -1041,48 +1039,6 @@
                         </tfoot>
                     </table>
                 </div>
-            </div>
-        </section>
-
-        <section id="panduan" class="page">
-            <div class="guide-grid">
-                <article class="content-card guide-card">
-                    <h3>1. Masuk ke aplikasi</h3>
-                    <p>Masuk menggunakan email dan kata sandi akun butik yang telah dibuat oleh pengelola. Aplikasi tidak menyediakan pendaftaran akun mandiri.</p>
-                </article>
-                <article class="content-card guide-card">
-                    <h3>2. Siapkan data persediaan</h3>
-                    <p>Tambahkan bahan baku dan tentukan satuannya. Kode bahan dibuat otomatis. Peringatan muncul saat stok bahan baku mencapai 5 atau kurang; stok barang jadi pada 1 atau kurang. Catat saldo awal dan perubahan stok lewat menu Transaksi.</p>
-                </article>
-                <article class="content-card guide-card">
-                    <h3>3. Siapkan produk dan resep</h3>
-                    <p>Tambahkan produk; kode produk dibuat otomatis. Di menu Bahan Habis Pakai, hubungkan produk dengan bahan dan jumlah yang diperlukan untuk satu produk. Daftar ini disimpan sekali dan dipakai kembali setiap kali produksi dicatat.</p>
-                </article>
-                <article class="content-card guide-card">
-                    <h3>4. Catat transaksi</h3>
-                    <p>Catat pembelian bahan, pemakaian bahan, produksi, penjualan, saldo awal, atau penilaian stok melalui menu Transaksi. Pilih item dan isi jumlah serta nilai yang diminta.</p>
-                    <p>Daftar bahan atau produk otomatis menyesuaikan jenis transaksi, jadi jenis item tidak perlu dipilih dua kali. Untuk saldo awal atau penilaian stok lama, pilih item yang sesuai. Produksi memakai daftar bahan tersimpan untuk mengurangi bahan dan menambah stok barang jadi; harga jual terisi dari data produk.</p>
-                </article>
-                <article class="content-card guide-card">
-                    <h3>5. Pantau stok dan peringatan</h3>
-                    <p>Dashboard menampilkan ringkasan operasional dan peringatan saat stok bahan baku 5 atau kurang atau barang jadi 1 atau kurang.</p>
-                </article>
-                <article class="content-card guide-card">
-                    <h3>6. Tampilkan dan ekspor laporan</h3>
-                    <p>Buka Laporan Akuntansi, tentukan tanggal awal dan akhir, lalu pilih Tampilkan Laporan. Pilih Ekspor CSV untuk mengunduh ringkasan, rincian persediaan, dan jurnal periode tersebut agar dapat dibuka di aplikasi spreadsheet.</p>
-                </article>
-            </div>
-
-            <div class="content-card guide-card">
-                <h3>Aturan input penting</h3>
-                <ul class="guide-list">
-                    <li>Lengkapi kolom wajib dan pilih data dari daftar yang tersedia.</li>
-                    <li>Jumlah dan stok tidak boleh negatif. Jumlah bahan baku dapat memakai pecahan sesuai satuannya, sedangkan jumlah barang jadi harus bilangan bulat.</li>
-                    <li>Jumlah resep harus lebih besar dari 0. Harga pada transaksi pembelian atau penjualan harus diisi sesuai jenis transaksi.</li>
-                    <li>Kode bahan dan produk dibuat otomatis. Jangan membuat kode baru atau mengetik ulang saldo stok di formulir master data.</li>
-                    <li>Jangan mengubah stok langsung untuk menggantikan transaksi. Gunakan menu Transaksi agar perubahan stok dan pencatatan akuntansi tetap terhubung.</li>
-                    <li>Jika terjadi kesalahan koneksi atau penyimpanan, periksa pesan notifikasi sebelum mencoba kembali agar transaksi tidak tercatat dua kali.</li>
-                </ul>
             </div>
         </section>
 
