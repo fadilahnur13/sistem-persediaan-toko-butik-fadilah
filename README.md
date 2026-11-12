@@ -13,7 +13,7 @@ Aplikasi web Fadilah Boutique untuk mengelola bahan baku, barang jadi, bahan hab
 - Pengelompokan koleksi produk menjadi atasan dan bawahan.
 - Riwayat transaksi dan jurnal laporan keuangan diurutkan berdasarkan tanggal.
 - Pembaruan stok, perhitungan harga pokok, dan jurnal melalui trigger database.
-- Laporan persediaan dan akuntansi dapat diunduh sebagai CSV atau Excel berformat `.xlsx`.
+- Laporan persediaan dan akuntansi dapat diunduh sebagai Excel berformat `.xlsx`.
 - Validasi input pada formulir.
 - Kode dibuat otomatis berurutan: BK untuk kain, BA untuk aksesoris, BN untuk benang, BJ untuk jarum, AT untuk atasan, BW untuk bawahan, DR untuk dress, dan GN untuk gaun. Perubahan stok dicatat melalui transaksi agar semua data tetap terhubung.
 

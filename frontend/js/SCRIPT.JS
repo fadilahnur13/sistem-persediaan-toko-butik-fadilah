@@ -560,10 +560,8 @@ async function loadAccountingReport() {
     const journalBody = document.getElementById("tabelJurnal");
     const warning = document.getElementById("laporanPeringatan");
     const exportButton = document.getElementById("eksporLaporanButton");
-    const csvExportButton = document.getElementById("eksporCsvButton");
     currentAccountingReport = null;
     exportButton.disabled = true;
-    csvExportButton.disabled = true;
 
     if (!from || !through || from > through) {
         showNotification("Rentang tanggal laporan tidak valid.", "warning");
@@ -655,7 +653,6 @@ async function loadAccountingReport() {
             journal: journal
         };
         exportButton.disabled = false;
-        csvExportButton.disabled = false;
 
         const warnings = [];
         if (unvaluedItems.length) {
@@ -699,70 +696,6 @@ async function loadAccountingReport() {
         console.error("Gagal memuat laporan akuntansi:", error);
         showNotification(error.message || "Gagal memuat laporan akuntansi.", "error");
     }
-}
-
-function csvEscape(value) {
-    let text = String(value == null ? "" : value);
-    if (typeof value !== "number" && /^[\u0000-\u0020]*[=+\-@]/.test(text)) {
-        text = "'" + text;
-    }
-    return `"${text.replace(/"/g, '""')}"`;
-}
-
-function exportAccountingCsv() {
-    if (!currentAccountingReport) {
-        showNotification("Tampilkan laporan terlebih dahulu sebelum mengekspor.", "warning");
-        return;
-    }
-
-    const report = currentAccountingReport;
-    const rows = [
-        ["LAPORAN AKUNTANSI FADILAH BOUTIQUE"],
-        ["Periode", report.from, "s.d.", report.through],
-        [],
-        ["RINGKASAN", "NILAI (Rp)"],
-        ["Penjualan (Bayar Langsung)", report.sales],
-        ["Harga Pokok Penjualan", report.hpp],
-        ["Laba Kotor", report.grossProfit],
-        ["Pembelian Bahan", report.purchases],
-        ["Nilai Persediaan Saat Ini", report.endingInventory],
-        ["Total Debit", report.totalDebit],
-        ["Total Kredit", report.totalCredit],
-        [],
-        ["RINCIAN PERSEDIAAN"],
-        ["Jenis", "Nama", "Stok", "Satuan", "HPP Rata-rata (Rp)", "Nilai Persediaan (Rp)"],
-        ...report.inventoryItems.map((item) => [
-            item.type,
-            item.name,
-            item.stock,
-            item.unit,
-            item.unitCost,
-            item.stock * item.unitCost
-        ]),
-        [],
-        ["JURNAL UMUM"],
-        ["Tanggal", "Akun", "Keterangan", "Debit (Rp)", "Kredit (Rp)"],
-        ...report.journal.map((item) => [
-            item.tanggal,
-            item.akun,
-            item.keterangan || "",
-            Number(item.debit || 0),
-            Number(item.kredit || 0)
-        ])
-    ];
-    const csv = "\uFEFFsep=;\r\n" + rows.map((row) => row.map(csvEscape).join(";")).join("\r\n");
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `laporan-akuntansi-${report.from}-${report.through}.csv`;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    setTimeout(function () {
-        URL.revokeObjectURL(url);
-    }, 1000);
-    showNotification("Laporan CSV berhasil diunduh.", "success");
 }
 
 async function exportAccountingReport() {
