@@ -700,7 +700,7 @@ INSERT INTO public.bahan_baku
 VALUES
 
 (
-    'BB001',
+    'BK001',
     'Kain Katun',
     'Katun',
     'meter',
@@ -709,7 +709,7 @@ VALUES
 ),
 
 (
-    'BB002',
+    'BK002',
     'Kain Denim',
     'Denim',
     'meter',
@@ -718,7 +718,7 @@ VALUES
 ),
 
 (
-    'BB003',
+    'BN001',
     'Benang Jahit',
     'Benang',
     'roll',
@@ -727,7 +727,7 @@ VALUES
 ),
 
 (
-    'BB004',
+    'BA001',
     'Kancing',
     'Aksesoris',
     'pcs',
@@ -754,7 +754,7 @@ INSERT INTO public.barang_jadi
 VALUES
 
 (
-    'BJ001',
+    'AT001',
     'Blouse Katun',
     'Blouse',
     'M',
@@ -764,7 +764,7 @@ VALUES
 ),
 
 (
-    'BJ002',
+    'DR001',
     'Dress Denim',
     'Dress',
     'L',
@@ -774,7 +774,7 @@ VALUES
 ),
 
 (
-    'BJ003',
+    'BW001',
     'Rok Katun',
     'Rok',
     'M',
@@ -792,15 +792,15 @@ ON CONFLICT (kode_barang) DO NOTHING;
 INSERT INTO public.detail_produksi (id_barang, id_bahan, jumlah_digunakan)
 SELECT barang.id_barang, bahan.id_bahan, resep.jumlah_digunakan
 FROM (VALUES
-    ('BJ001', 'BB001', 2.0),
-    ('BJ001', 'BB003', 1.0),
-    ('BJ001', 'BB004', 5.0),
-    ('BJ002', 'BB002', 2.5),
-    ('BJ002', 'BB003', 1.0),
-    ('BJ002', 'BB004', 4.0),
-    ('BJ003', 'BB001', 1.5),
-    ('BJ003', 'BB003', 1.0),
-    ('BJ003', 'BB004', 3.0)
+    ('AT001', 'BK001', 2.0),
+    ('AT001', 'BN001', 1.0),
+    ('AT001', 'BA001', 5.0),
+    ('DR001', 'BK002', 2.5),
+    ('DR001', 'BN001', 1.0),
+    ('DR001', 'BA001', 4.0),
+    ('BW001', 'BK001', 1.5),
+    ('BW001', 'BN001', 1.0),
+    ('BW001', 'BA001', 3.0)
 ) AS resep(kode_barang, kode_bahan, jumlah_digunakan)
 JOIN public.barang_jadi AS barang ON barang.kode_barang = resep.kode_barang
 JOIN public.bahan_baku AS bahan ON bahan.kode_bahan = resep.kode_bahan

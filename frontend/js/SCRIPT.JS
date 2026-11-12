@@ -17,6 +17,7 @@ let editBahanBakuId = null;
 let editBarangJadiId = null;
 let currentAccountingReport = null;
 let lastLowStockNotificationSignature = null;
+let catalogCodeSuggestionRequest = 0;
 
 
 /* =====================================================
@@ -238,6 +239,20 @@ async function initializeApplication() {
             "submit",
             saveBahanBaku
         );
+
+        ["jenisBahan", "namaBahan"].forEach(function (id) {
+            document.getElementById(id).addEventListener("change", function () {
+                if (editBahanBakuId) {
+                    return;
+                }
+
+                const prefix = getMaterialCodePrefix(
+                    document.getElementById("jenisBahan").value,
+                    document.getElementById("namaBahan").value
+                );
+                suggestCatalogCode(prefix, "kodeBahan", "bahan_baku", "kode_bahan");
+            });
+        });
     }
 
 
@@ -253,6 +268,20 @@ async function initializeApplication() {
             "submit",
             saveBarangJadi
         );
+
+        ["kategoriBarang", "namaBarang"].forEach(function (id) {
+            document.getElementById(id).addEventListener("change", function () {
+                if (editBarangJadiId) {
+                    return;
+                }
+
+                const prefix = getProductCodePrefix(
+                    document.getElementById("kategoriBarang").value,
+                    document.getElementById("namaBarang").value
+                );
+                suggestCatalogCode(prefix, "kodeBarang", "barang_jadi", "kode_barang");
+            });
+        });
     }
 
     // Event form transaksi
@@ -430,10 +459,99 @@ function getTodayDateString() {
     return `${year}-${month}-${day}`;
 }
 
-function generateCatalogCode(prefix) {
-    const timestamp = Date.now().toString(36).toUpperCase();
-    const suffix = Math.random().toString(36).slice(2, 7).toUpperCase().padEnd(5, "0");
-    return `${prefix}${timestamp}${suffix}`;
+function getNextCatalogCode(prefix, items, codeField) {
+    const existingCodes = new Set(
+        items.map(function (item) {
+            return String(item[codeField] || "").toUpperCase();
+        })
+    );
+    const codePattern = new RegExp(`^${prefix}(\\d+)$`, "i");
+    let nextNumber = 1;
+
+    items.forEach(function (item) {
+        const match = String(item[codeField] || "").match(codePattern);
+        if (match) {
+            nextNumber = Math.max(nextNumber, Number(match[1]) + 1);
+        }
+    });
+
+    let code = `${prefix}${String(nextNumber).padStart(3, "0")}`;
+    while (existingCodes.has(code.toUpperCase())) {
+        nextNumber += 1;
+        code = `${prefix}${String(nextNumber).padStart(3, "0")}`;
+    }
+
+    return code;
+}
+
+function getMaterialCodePrefix(kind, name) {
+    const materialType = String(kind || "").toLocaleLowerCase("id-ID");
+    const materialName = String(name || "").toLocaleLowerCase("id-ID");
+    if (/\bbenang\b/.test(`${materialType} ${materialName}`)) {
+        return "BN";
+    }
+    if (/\bjarum\b/.test(`${materialType} ${materialName}`)) {
+        return "BJ";
+    }
+    if (/\b(aksesoris|aksesori|accessory|accessories|resleting|ritsleting|zipper|kancing|button)\b/.test(materialType)) {
+        return "BA";
+    }
+    if (/\b(kain|katun|denim|satin|brokat|linen|voal|cotton|fabric|sutra|silk)\b/.test(materialType)) {
+        return "BK";
+    }
+    if (/\b(aksesoris|aksesori|accessory|accessories|resleting|ritsleting|zipper|kancing|button)\b/.test(materialName)) {
+        return "BA";
+    }
+    if (/\b(kain|katun|denim|satin|brokat|linen|voal|cotton|fabric|sutra|silk)\b/.test(materialName)) {
+        return "BK";
+    }
+    return null;
+}
+
+function getProductCodePrefix(category, name) {
+    const description = `${category || ""} ${name || ""}`.toLocaleLowerCase("id-ID");
+    if (/\bdress\b/.test(description)) {
+        return "DR";
+    }
+    if (/\bgaun\b/.test(description)) {
+        return "GN";
+    }
+    const clothingGroup = getClothingGroup({ kategori: category, nama_barang: name });
+    if (clothingGroup === "Atasan") {
+        return "AT";
+    }
+    if (clothingGroup === "Bawahan") {
+        return "BW";
+    }
+    return null;
+}
+
+async function suggestCatalogCode(prefix, inputId, table, codeField) {
+    const requestId = ++catalogCodeSuggestionRequest;
+    const input = document.getElementById(inputId);
+    input.value = "";
+
+    if (!prefix) {
+        return;
+    }
+
+    try {
+        const { data, error } = await supabaseClient
+            .from(table)
+            .select(codeField);
+        if (error) {
+            throw error;
+        }
+
+        if (requestId === catalogCodeSuggestionRequest) {
+            input.value = getNextCatalogCode(prefix, data || [], codeField);
+        }
+    } catch (error) {
+        console.error("Gagal membuat saran kode katalog:", error);
+        if (requestId === catalogCodeSuggestionRequest) {
+            showNotification("Kode otomatis tidak dapat dibuat. Periksa koneksi lalu coba lagi.", "error");
+        }
+    }
 }
 
 async function loadAccountingReport() {
@@ -1172,7 +1290,7 @@ function openBahanBakuForm() {
     ).reset();
 
 
-    document.getElementById("kodeBahan").value = generateCatalogCode("BB");
+    document.getElementById("kodeBahan").value = "";
 
 
     document.querySelector(
@@ -1234,7 +1352,7 @@ async function saveBahanBaku(event) {
     ) {
 
         showNotification(
-            "Lengkapi data bahan baku.",
+            "Lengkapi data bahan baku. Isi jenis bahan agar kode dapat dibuat otomatis.",
             "warning"
         );
 
@@ -1323,12 +1441,7 @@ async function saveBahanBaku(event) {
         if (
             error.code === "23505"
         ) {
-            if (!editBahanBakuId) {
-                document.getElementById("kodeBahan").value = generateCatalogCode("BB");
-                showNotification("Kode bahan baru dibuat otomatis. Tekan Simpan kembali.", "warning");
-            } else {
-                showNotification("Kode bahan sudah digunakan.", "error");
-            }
+            showNotification("Kode bahan sudah digunakan. Masukkan kode lain.", "error");
 
         } else {
 
@@ -1758,7 +1871,7 @@ function openBarangJadiForm() {
     ).reset();
 
 
-    document.getElementById("kodeBarang").value = generateCatalogCode("BJ");
+    document.getElementById("kodeBarang").value = "";
 
     document.querySelector(
         "#formBarangJadi h3"
@@ -1848,7 +1961,12 @@ async function saveBarangJadi(event) {
             showNotification("Data barang jadi berhasil diperbarui. Perubahan stok dicatat melalui menu Transaksi.", "success");
         } catch (error) {
             console.error(error);
-            showNotification(error.message || "Gagal memperbarui barang jadi.", "error");
+            showNotification(
+                error.code === "23505"
+                    ? "Kode barang sudah digunakan. Masukkan kode lain."
+                    : error.message || "Gagal memperbarui barang jadi.",
+                "error"
+            );
             return;
         }
     } else {
@@ -1869,12 +1987,7 @@ async function saveBarangJadi(event) {
         } catch (error) {
             console.error(error);
             if (error.code === "23505") {
-                if (!editBarangJadiId) {
-                    document.getElementById("kodeBarang").value = generateCatalogCode("BJ");
-                    showNotification("Kode barang baru dibuat otomatis. Tekan Simpan kembali.", "warning");
-                } else {
-                    showNotification("Kode barang sudah digunakan.", "error");
-                }
+                showNotification("Kode barang sudah digunakan. Masukkan kode lain.", "error");
             } else {
                 const detailError = [error.message, error.details, error.hint]
                     .filter(Boolean)

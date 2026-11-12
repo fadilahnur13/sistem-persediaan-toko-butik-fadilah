@@ -15,7 +15,7 @@ Aplikasi web Fadilah Boutique untuk mengelola bahan baku, barang jadi, bahan hab
 - Pembaruan stok, perhitungan harga pokok, dan jurnal melalui trigger database.
 - Laporan persediaan dan akuntansi dengan ekspor CSV.
 - Validasi input pada formulir.
-- Kode bahan dan produk dibuat otomatis; perubahan stok dicatat melalui transaksi agar semua data tetap terhubung.
+- Kode dibuat otomatis berurutan: BK untuk kain, BA untuk aksesoris, BN untuk benang, BJ untuk jarum, AT untuk atasan, BW untuk bawahan, DR untuk dress, dan GN untuk gaun. Perubahan stok dicatat melalui transaksi agar semua data tetap terhubung.
 
 ## Memulai
 
