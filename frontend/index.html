@@ -985,7 +985,7 @@
                         <input type="date" id="laporanSampai" required>
                     </div>
                     <button class="btn btn-primary" type="submit">Tampilkan Laporan</button>
-                    <button class="btn btn-secondary" id="eksporLaporanButton" type="button" onclick="exportAccountingReport()" disabled>Ekspor CSV</button>
+                    <button class="btn btn-secondary" id="eksporLaporanButton" type="button" onclick="exportAccountingReport()" disabled>Unduh Excel (.xlsx)</button>
                 </form>
             </div>
 
@@ -1119,6 +1119,7 @@
          JAVASCRIPT SUPABASE
     =========================================== -->
 
+    <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 

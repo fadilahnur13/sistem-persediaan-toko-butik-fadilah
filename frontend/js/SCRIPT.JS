@@ -698,68 +698,303 @@ async function loadAccountingReport() {
     }
 }
 
-function csvEscape(value) {
-    let text = String(value == null ? "" : value);
-    if (typeof value !== "number" && /^[\u0000-\u0020]*[=+\-@]/.test(text)) {
-        text = "'" + text;
-    }
-    return `"${text.replace(/"/g, '""')}"`;
-}
-
-function exportAccountingReport() {
+async function exportAccountingReport() {
     if (!currentAccountingReport) {
         showNotification("Tampilkan laporan terlebih dahulu sebelum mengekspor.", "warning");
         return;
     }
 
+    if (!window.ExcelJS) {
+        showNotification("Fitur ekspor Excel belum tersedia. Muat ulang halaman saat tersambung ke internet.", "error");
+        return;
+    }
+
     const report = currentAccountingReport;
-    const rows = [
-        ["LAPORAN AKUNTANSI FADILAH BOUTIQUE"],
-        ["Periode", report.from, "s.d.", report.through],
-        [],
-        ["RINGKASAN", "NILAI (Rp)"],
-        ["Penjualan (Bayar Langsung)", report.sales],
-        ["Harga Pokok Penjualan", report.hpp],
-        ["Laba Kotor", report.grossProfit],
-        ["Pembelian Bahan", report.purchases],
-        ["Nilai Persediaan Saat Ini", report.endingInventory],
-        ["Total Debit", report.totalDebit],
-        ["Total Kredit", report.totalCredit],
-        [],
-        ["RINCIAN PERSEDIAAN"],
-        ["Jenis", "Nama", "Stok", "Satuan", "HPP Rata-rata (Rp)", "Nilai Persediaan (Rp)"],
-        ...report.inventoryItems.map((item) => [
-            item.type,
-            item.name,
-            item.stock,
-            item.unit,
-            item.unitCost,
-            item.stock * item.unitCost
-        ]),
-        [],
-        ["JURNAL UMUM"],
-        ["Tanggal", "Akun", "Keterangan", "Debit (Rp)", "Kredit (Rp)"],
-        ...report.journal.map((item) => [
-            item.tanggal,
-            item.akun,
-            item.keterangan || "",
-            Number(item.debit || 0),
-            Number(item.kredit || 0)
-        ])
-    ];
-    const csv = "\uFEFFsep=;\r\n" + rows.map((row) => row.map(csvEscape).join(";")).join("\r\n");
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `laporan-akuntansi-${report.from}-${report.through}.csv`;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    setTimeout(function () {
-        URL.revokeObjectURL(url);
-    }, 1000);
-    showNotification("Laporan berhasil diekspor ke CSV.", "success");
+    const exportButton = document.getElementById("eksporLaporanButton");
+    exportButton.disabled = true;
+
+    try {
+        const workbook = new ExcelJS.Workbook();
+        workbook.creator = "Fadilah Boutique";
+        workbook.created = new Date();
+        workbook.subject = "Laporan persediaan dan akuntansi";
+        workbook.title = `Laporan Akuntansi ${report.from} - ${report.through}`;
+
+        const colors = {
+            primary: "5C1A2E",
+            primaryLight: "F5E6EA",
+            gold: "B8935A",
+            goldLight: "F5EDE0",
+            white: "FFFFFF",
+            text: "29231F",
+            border: "E8E0D4"
+        };
+        const currencyFormat = '"Rp" #,##0.00;[Red]("Rp" #,##0.00);-';
+        const numberFormat = '#,##0.##;[Red](#,##0.##);-';
+        const period = `Periode: ${report.from} s.d. ${report.through}`;
+
+        function styleTitle(worksheet, lastColumn, subtitle) {
+            worksheet.mergeCells(1, 1, 1, lastColumn);
+            worksheet.getCell(1, 1).value = "FADILAH BOUTIQUE";
+            worksheet.getCell(1, 1).font = {
+                name: "Arial",
+                size: 16,
+                bold: true,
+                color: { argb: colors.white }
+            };
+            worksheet.getCell(1, 1).fill = {
+                type: "pattern",
+                pattern: "solid",
+                fgColor: { argb: colors.primary }
+            };
+            worksheet.getCell(1, 1).alignment = { vertical: "middle" };
+            worksheet.getRow(1).height = 30;
+
+            worksheet.mergeCells(2, 1, 2, lastColumn);
+            worksheet.getCell(2, 1).value = subtitle;
+            worksheet.getCell(2, 1).font = {
+                name: "Arial",
+                size: 11,
+                italic: true,
+                color: { argb: colors.text }
+            };
+            worksheet.getRow(2).height = 22;
+        }
+
+        function styleSection(cell) {
+            cell.font = {
+                name: "Arial",
+                size: 11,
+                bold: true,
+                color: { argb: colors.white }
+            };
+            cell.fill = {
+                type: "pattern",
+                pattern: "solid",
+                fgColor: { argb: colors.primary }
+            };
+            cell.alignment = { vertical: "middle" };
+        }
+
+        function styleTableHeader(row) {
+            row.height = 24;
+            row.eachCell({ includeEmpty: true }, function (cell) {
+                cell.font = {
+                    name: "Arial",
+                    size: 10,
+                    bold: true,
+                    color: { argb: colors.primary }
+                };
+                cell.fill = {
+                    type: "pattern",
+                    pattern: "solid",
+                    fgColor: { argb: colors.goldLight }
+                };
+                cell.border = {
+                    bottom: { style: "medium", color: { argb: colors.gold } }
+                };
+                cell.alignment = { vertical: "middle", wrapText: true };
+            });
+        }
+
+        function styleDataRows(worksheet, firstRow, lastRow, lastColumn) {
+            for (let rowNumber = firstRow; rowNumber <= lastRow; rowNumber += 1) {
+                const row = worksheet.getRow(rowNumber);
+                row.height = 21;
+                for (let column = 1; column <= lastColumn; column += 1) {
+                    const cell = row.getCell(column);
+                    cell.font = { name: "Arial", size: 10, color: { argb: colors.text } };
+                    cell.border = {
+                        bottom: { style: "hair", color: { argb: colors.border } }
+                    };
+                    cell.fill = {
+                        type: "pattern",
+                        pattern: "solid",
+                        fgColor: {
+                            argb: rowNumber % 2 === firstRow % 2 ? colors.white : "FAF7F2"
+                        }
+                    };
+                }
+            }
+        }
+
+        const summary = workbook.addWorksheet("Ringkasan", {
+            properties: { tabColor: colors.primary },
+            pageSetup: { paperSize: 9, orientation: "portrait", fitToPage: true, fitToWidth: 1 }
+        });
+        summary.columns = [
+            { width: 38 },
+            { width: 24 }
+        ];
+        styleTitle(summary, 2, `LAPORAN AKUNTANSI  |  ${period}`);
+        summary.mergeCells("A4:B4");
+        summary.getCell("A4").value = "RINGKASAN KEUANGAN";
+        styleSection(summary.getCell("A4"));
+        summary.getCell("B4").fill = {
+            type: "pattern",
+            pattern: "solid",
+            fgColor: { argb: colors.primary }
+        };
+
+        [
+            ["Penjualan (Bayar Langsung)", report.sales],
+            ["Harga Pokok Penjualan", report.hpp],
+            ["Laba Kotor", report.grossProfit],
+            ["Pembelian Bahan", report.purchases],
+            ["Nilai Persediaan Saat Ini", report.endingInventory],
+            ["Total Debit", report.totalDebit],
+            ["Total Kredit", report.totalCredit]
+        ].forEach(function (item) {
+            summary.addRow(item);
+        });
+        styleDataRows(summary, 5, 11, 2);
+        for (let rowNumber = 5; rowNumber <= 11; rowNumber += 1) {
+            summary.getCell(rowNumber, 2).numFmt = currencyFormat;
+            summary.getCell(rowNumber, 2).alignment = { horizontal: "right" };
+        }
+        summary.getRow(7).font = { name: "Arial", size: 10, bold: true, color: { argb: colors.primary } };
+        summary.getRow(7).getCell(2).numFmt = currencyFormat;
+        summary.getRow(7).getCell(2).fill = {
+            type: "pattern",
+            pattern: "solid",
+            fgColor: { argb: colors.primaryLight }
+        };
+        summary.views = [{ state: "frozen", ySplit: 4 }];
+        summary.printOptions = { horizontalCentered: true };
+        summary.pageSetup.printArea = "A1:B11";
+
+        const inventory = workbook.addWorksheet("Rincian Persediaan", {
+            properties: { tabColor: colors.gold },
+            pageSetup: { paperSize: 9, orientation: "landscape", fitToPage: true, fitToWidth: 1 }
+        });
+        inventory.columns = [
+            { header: "Jenis", key: "type", width: 18 },
+            { header: "Nama Barang", key: "name", width: 30 },
+            { header: "Stok", key: "stock", width: 14 },
+            { header: "Satuan", key: "unit", width: 14 },
+            { header: "HPP Rata-rata (Rp)", key: "unitCost", width: 22 },
+            { header: "Nilai Persediaan (Rp)", key: "value", width: 24 }
+        ];
+        styleTitle(inventory, 6, `RINCIAN PERSEDIAAN  |  ${period}`);
+        inventory.getRow(4).values = inventory.columns.map((column) => column.header);
+        styleTableHeader(inventory.getRow(4));
+        report.inventoryItems.forEach(function (item) {
+            inventory.addRow({
+                type: item.type,
+                name: item.name,
+                stock: item.stock,
+                unit: item.unit,
+                unitCost: item.unitCost,
+                value: item.stock * item.unitCost
+            });
+        });
+        const inventoryTotalRow = inventory.addRow([
+            "TOTAL NILAI PERSEDIAAN", "", "", "", "",
+            report.inventoryItems.reduce((sum, item) => sum + item.stock * item.unitCost, 0)
+        ]);
+        if (inventoryTotalRow.number > 5) {
+            styleDataRows(inventory, 5, inventoryTotalRow.number - 1, 6);
+        }
+        for (let rowNumber = 5; rowNumber <= inventoryTotalRow.number; rowNumber += 1) {
+            inventory.getCell(rowNumber, 3).numFmt = numberFormat;
+            inventory.getCell(rowNumber, 5).numFmt = currencyFormat;
+            inventory.getCell(rowNumber, 6).numFmt = currencyFormat;
+            inventory.getCell(rowNumber, 3).alignment = { horizontal: "right" };
+            inventory.getCell(rowNumber, 5).alignment = { horizontal: "right" };
+            inventory.getCell(rowNumber, 6).alignment = { horizontal: "right" };
+        }
+        inventoryTotalRow.font = { name: "Arial", size: 10, bold: true, color: { argb: colors.primary } };
+        inventoryTotalRow.eachCell({ includeEmpty: true }, function (cell) {
+            cell.font = { name: "Arial", size: 10, bold: true, color: { argb: colors.primary } };
+            cell.border = { top: { style: "medium", color: { argb: colors.gold } } };
+            cell.fill = {
+                type: "pattern",
+                pattern: "solid",
+                fgColor: { argb: colors.primaryLight }
+            };
+        });
+        inventory.autoFilter = {
+            from: { row: 4, column: 1 },
+            to: { row: 4 + report.inventoryItems.length, column: 6 }
+        };
+        inventory.views = [{ state: "frozen", ySplit: 4 }];
+        inventory.pageSetup.printTitleRows = "1:4";
+
+        const journal = workbook.addWorksheet("Jurnal Umum", {
+            properties: { tabColor: "2D6A4F" },
+            pageSetup: { paperSize: 9, orientation: "landscape", fitToPage: true, fitToWidth: 1 }
+        });
+        journal.columns = [
+            { header: "Tanggal", key: "date", width: 16 },
+            { header: "Akun", key: "account", width: 30 },
+            { header: "Keterangan", key: "description", width: 52 },
+            { header: "Debit (Rp)", key: "debit", width: 22 },
+            { header: "Kredit (Rp)", key: "credit", width: 22 }
+        ];
+        styleTitle(journal, 5, `JURNAL UMUM  |  ${period}`);
+        journal.getRow(4).values = journal.columns.map((column) => column.header);
+        styleTableHeader(journal.getRow(4));
+        report.journal.forEach(function (item) {
+            journal.addRow({
+                date: item.tanggal,
+                account: item.akun,
+                description: item.keterangan || "",
+                debit: Number(item.debit || 0),
+                credit: Number(item.kredit || 0)
+            });
+        });
+        const journalTotalRow = journal.addRow([
+            "TOTAL", "", "",
+            report.totalDebit,
+            report.totalCredit
+        ]);
+        if (journalTotalRow.number > 5) {
+            styleDataRows(journal, 5, journalTotalRow.number - 1, 5);
+        }
+        for (let rowNumber = 5; rowNumber <= journalTotalRow.number; rowNumber += 1) {
+            journal.getCell(rowNumber, 4).numFmt = currencyFormat;
+            journal.getCell(rowNumber, 5).numFmt = currencyFormat;
+            journal.getCell(rowNumber, 4).alignment = { horizontal: "right" };
+            journal.getCell(rowNumber, 5).alignment = { horizontal: "right" };
+        }
+        journalTotalRow.font = { name: "Arial", size: 10, bold: true, color: { argb: colors.primary } };
+        journalTotalRow.eachCell({ includeEmpty: true }, function (cell) {
+            cell.font = { name: "Arial", size: 10, bold: true, color: { argb: colors.primary } };
+            cell.border = { top: { style: "medium", color: { argb: colors.gold } } };
+            cell.fill = {
+                type: "pattern",
+                pattern: "solid",
+                fgColor: { argb: colors.primaryLight }
+            };
+        });
+        journal.autoFilter = {
+            from: { row: 4, column: 1 },
+            to: { row: 4 + report.journal.length, column: 5 }
+        };
+        journal.views = [{ state: "frozen", ySplit: 4 }];
+        journal.pageSetup.printTitleRows = "1:4";
+
+        const fileContents = await workbook.xlsx.writeBuffer();
+        const blob = new Blob([fileContents], {
+            type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `laporan-akuntansi-${report.from}-${report.through}.xlsx`;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        setTimeout(function () {
+            URL.revokeObjectURL(url);
+        }, 1000);
+        showNotification("Laporan Excel berhasil diunduh.", "success");
+    } catch (error) {
+        console.error("Gagal mengekspor laporan Excel:", error);
+        showNotification("Gagal membuat file Excel. Coba muat ulang halaman lalu ekspor kembali.", "error");
+    } finally {
+        exportButton.disabled = !currentAccountingReport;
+    }
 }
 
 
